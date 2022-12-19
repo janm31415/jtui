@@ -1,0 +1,31 @@
+cmake_minimum_required(VERSION 3.10)
+project(jtui)
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib")
+set(CMAKE_PDB_OUTPUT_DIRECTORY     "${CMAKE_CURRENT_BINARY_DIR}/bin")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
+
+add_subdirectory(PDCurses)
+add_subdirectory(SDL2)
+add_subdirectory(SDL2_ttf)
+add_subdirectory(freetype)
+
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+set_target_properties (pdcurses PROPERTIES FOLDER PDCurses)
+set_target_properties (firework PROPERTIES FOLDER PDCurses/demo)
+set_target_properties (ozdemo PROPERTIES FOLDER PDCurses/demo)
+set_target_properties (ptest PROPERTIES FOLDER PDCurses/demo)
+set_target_properties (rain PROPERTIES FOLDER PDCurses/demo)
+set_target_properties (testcurs PROPERTIES FOLDER PDCurses/demo)
+set_target_properties (tuidemo PROPERTIES FOLDER PDCurses/demo)
+set_target_properties (worm PROPERTIES FOLDER PDCurses/demo)
+set_target_properties (xmas PROPERTIES FOLDER PDCurses/demo)
+
+set_target_properties (freetype PROPERTIES FOLDER SDL2)
+set_target_properties (SDL2 PROPERTIES FOLDER SDL2)
+set_target_properties (SDL2_ttf PROPERTIES FOLDER SDL2)
+set_target_properties (SDL2main PROPERTIES FOLDER SDL2)
+set_target_properties (SDL2-static PROPERTIES FOLDER SDL2)
+set_target_properties (uninstall PROPERTIES FOLDER SDL2)
