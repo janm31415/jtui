@@ -10,6 +10,8 @@ add_subdirectory(PDCurses)
 add_subdirectory(SDL2)
 add_subdirectory(SDL2_ttf)
 add_subdirectory(freetype)
+add_subdirectory(jtui)
+add_subdirectory(jtui_demo)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
