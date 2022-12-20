@@ -58,6 +58,7 @@ void message()
 
 int main(int argc, char** argv)
   {
+  //setlocale(LC_ALL, "");
   std::vector<jtui::menu> m = jtui::build_menu();
   jtui::run(m.data(), m.size(), "jtui demo");
   return 0;

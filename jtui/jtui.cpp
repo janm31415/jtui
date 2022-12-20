@@ -44,7 +44,7 @@ namespace jtui
     char buff[10];
     char long_buffer[256];
     if (str.length() > length)
-      {      
+      {
       snprintf(buff, sizeof(buff), "%%.%ds", length);
       }
     else
@@ -134,7 +134,7 @@ namespace jtui
     {
     int menu_width = 0;
     const menu* ptr_menu = menu_items;
-    for (std::size_t i =0; i < number_of_menu_items; ++i, ++ptr_menu)
+    for (std::size_t i = 0; i < number_of_menu_items; ++i, ++ptr_menu)
       {
       if (ptr_menu->name.length() > menu_width)
         menu_width = ptr_menu->name.length();
@@ -165,7 +165,7 @@ namespace jtui
 
     for (i = 0; i < number_of_menu_items; ++i, ++p)
       {
-      mvwaddstr(win_main, i+1, 2, p->name.c_str());
+      mvwaddstr(win_main, i + 1, 2, p->name.c_str());
       }
 
     touchwin(wmenu);
@@ -201,9 +201,6 @@ namespace jtui
     int c = ch;
 
     ch = ERR;
-#ifdef ALT_X
-    quit = (c == ALT_X);    /* PC only ! */
-#endif
     return c;
     }
 
@@ -215,18 +212,19 @@ namespace jtui
 
   void status_message(const std::string& msg)
     {
-    std::string text = pad_string(msg, body_width-3);
+    std::string text = pad_string(msg, body_width - 3);
     mvwaddstr(win_status, 1, 2, text.c_str());
     wrefresh(win_status);
     }
 
-  void main_help()
+  void main_help_1()
     {
-#ifdef ALT_X
-    status_message("Use arrow keys and Enter to select (Alt-X to quit)");
-#else
-    status_message("Use arrow keys and Enter to select");
-#endif
+    status_message("Use ALT to enter the menu.");
+    }
+
+  void main_help_2()
+    {
+    status_message("Use arrow keys to navigate the menu.");
     }
 
   void rmline(WINDOW* win, int nr)   /* keeps box lines intact */
@@ -249,7 +247,7 @@ namespace jtui
   void do_menu(const menu* menu_items, const std::size_t number_of_menu_items)
     {
     bool stop = false;
-    int x,y;
+    int x, y;
     int old = -1;
     int cur = 0;
     int barlen = menu_width(menu_items, number_of_menu_items);
@@ -271,7 +269,7 @@ namespace jtui
         if (old != -1)
           {
           std::string text = pre_pad(pad_string(menu_items[old].name, barlen - 1), 1);
-          mvwaddstr(win_menu, old+1, 1, text.c_str());
+          mvwaddstr(win_menu, old + 1, 1, text.c_str());
           }
 
         setcolor(win_menu, SUBMENUREVCOLOR);
@@ -299,6 +297,7 @@ namespace jtui
 
           repaintmenu(win_menu, menu_items, number_of_menu_items);
 
+          stop = true;
           old = -1;
           break;
 
@@ -315,10 +314,11 @@ namespace jtui
         case KEY_ESC:
         case KEY_LEFT:
         case KEY_RIGHT:
-          if (key == KEY_ESC)
+          if (c == KEY_ESC)
             key = ERR;  /* return to prev submenu */
-
-          stop = TRUE;
+          else
+            key = c;
+          stop = true;
           break;
         }
       }
@@ -332,13 +332,17 @@ namespace jtui
   void main_menu(const menu* menu_items, const std::size_t number_of_menu_items)
     {
     int old = -1;
-    int cur = 0;
+    int cur = -1;
     int barlen = menu_width(menu_items, number_of_menu_items);
     repaintmainmenu(barlen, menu_items, number_of_menu_items);
 
     while (!quit)
       {
-      if (cur != old)
+      if (cur < 0)
+        {
+        main_help_1();
+        }
+      else if (cur >= 0 && cur != old)
         {
         if (old != -1)
           {
@@ -347,7 +351,7 @@ namespace jtui
           status_message(menu_items[cur].description);
           }
         else
-          main_help();
+          main_help_2();
 
         setcolor(win_main, MAINMENUREVCOLOR);
 
@@ -361,25 +365,66 @@ namespace jtui
       switch (int c = (key != ERR ? key : waitforkey()))
         {
         case KEY_DOWN:
-        case '\n':              
-          touchwin(win_body);
-          wrefresh(win_body);
-          rmerror();
-          setmenupos(title_height + main_menu_height, cur * barlen);
-          curs_set(1);
-          (menu_items[cur].fun)();   /* perform function */
-          curs_set(0);
+        case '\n':
+          if (cur >= 0)
+            {
+            touchwin(win_body);
+            wrefresh(win_body);
+            rmerror();
+            setmenupos(title_height + main_menu_height, cur * barlen);
+            curs_set(1);
+            (menu_items[cur].fun)();   /* perform function */
+            curs_set(0);
 
-          repaintmainmenu(barlen, menu_items, number_of_menu_items);
-          old = -1;
+            switch (key)
+              {
+              case KEY_LEFT:
+                cur = (cur + number_of_menu_items - 1) % number_of_menu_items;
+                key = '\n';
+                break;
+
+              case KEY_RIGHT:
+                cur = (cur + 1) % number_of_menu_items;
+                key = '\n';
+                break;
+
+              default:
+                key = ERR;
+                old = -1;
+                cur = -1;
+              }
+
+            repaintmainmenu(barlen, menu_items, number_of_menu_items);
+            old = -1;
+            }
           break;
 
         case KEY_LEFT:
-          cur = (cur + number_of_menu_items - 1) % number_of_menu_items;
+          if (cur >= 0)
+            {
+            cur = (cur + number_of_menu_items - 1) % number_of_menu_items;
+            }
           break;
 
         case KEY_RIGHT:
-          cur = (cur + 1) % number_of_menu_items;
+          if (cur >= 0)
+            {
+            cur = (cur + 1) % number_of_menu_items;
+            }
+          break;
+
+        case KEY_ALT_L:
+        case KEY_ALT_R:
+          if (cur < 0)
+            {
+            cur = 0;
+            old = -1;
+            }
+          break;
+
+        case KEY_ESC:
+          cur = -1;
+          repaintmainmenu(barlen, menu_items, number_of_menu_items);
           break;
         }
 
@@ -413,20 +458,21 @@ namespace jtui
     colorbox(win_body, BODYCOLOR, 0);
     colorbox(win_status, STATUSCOLOR, 0);
 
-    title_message(pad_string(title, body_width-3));
+    title_message(pad_string(title, body_width - 3));
 
     cbreak();
     noecho();
+    PDC_return_key_modifiers(true);
     curs_set(0);
-    nodelay(win_body, TRUE);
+    nodelay(win_body, true);
     halfdelay(10);
-    keypad(win_body, TRUE);
-    scrollok(win_body, TRUE);
+    keypad(win_body, true);
+    scrollok(win_body, true);
 
-    leaveok(stdscr, TRUE);
-    leaveok(win_title, TRUE);
-    leaveok(win_main, TRUE);
-    leaveok(win_status, TRUE);
+    leaveok(stdscr, true);
+    leaveok(win_title, true);
+    leaveok(win_main, true);
+    leaveok(win_status, true);
 
     main_menu(menu_items, number_of_menu_items);
 
