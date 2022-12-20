@@ -54,6 +54,9 @@ namespace jtui
 
   void run(const std::vector<menu>& main_menu, const std::string& title);
 
-  void body_message(const state& current_state, const std::string& msg);
+  std::optional<state> body_message(state current_state, const std::string& msg);
 
+  std::optional<state> do_submenu(state current_state, const std::vector<menu>& sub_menu);
+
+  std::optional<state> do_exit();
   }

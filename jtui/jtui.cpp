@@ -111,10 +111,11 @@ namespace jtui
     wrefresh(current_state.win_title);
     }
 
-  void body_message(const state& current_state, const std::string& msg)
+  std::optional<state> body_message(state current_state, const std::string& msg)
     {
     waddstr(current_state.win_body, msg.c_str());
     wrefresh(current_state.win_body);
+    return current_state;
     }
 
   void status_message(const state& current_state, const std::string& msg)
@@ -254,6 +255,30 @@ namespace jtui
     else
       new_state = draw_main_menu(new_state);
     return new_state;
+    }
+
+  std::optional<state> do_exit()
+    {
+    return std::optional<state>();
+    }
+
+  std::optional<state> do_submenu(state current_state, const std::vector<menu>& sub_menu)
+    {
+    current_state.sub_menu = sub_menu;
+    current_state.active_menu = jtui::active_menu_type::submenu;
+    if (current_state.win_menu != nullptr)
+      {
+      rmline(current_state.win_status, 0);
+      delwin(current_state.win_menu);
+      current_state.win_menu = nullptr;
+      touchwin(current_state.win_body);
+      wrefresh(current_state.win_body);
+      ++current_state.menu_x; // this is a sub sub menu
+      ++current_state.menu_y;
+      }
+    current_state.current_sub_menu = 0;
+    current_state.old_sub_menu = -1;
+    return current_state;
     }
 
   std::optional<state> enter_submenu(state current_state)
