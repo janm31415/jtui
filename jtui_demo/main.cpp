@@ -2,73 +2,53 @@
 #include "jtui/jtui.h"
 #include <vector>
 
-void file_menu();
-void action_menu();
-void exit();
-void message();
-void message2();
-
-namespace jtui
+std::optional<jtui::state> quit(jtui::state st)
   {
-
-  std::vector<menu> build_menu()
-    {
-    std::vector<menu> v;
-    v.push_back(make_menu("File", "Go inside the file menu", &file_menu));
-    v.push_back(make_menu("Actions", "Go inside the action menu", &action_menu));
-    return v;
-    }
-
-  std::vector<menu> build_file_menu()
-    {
-    std::vector<menu> v;
-    v.push_back(make_menu("Exit", "Quit the application", &exit));    
-    return v;
-    }
-
-  std::vector<menu> build_actions_menu()
-    {
-    std::vector<menu> v;
-    v.push_back(make_menu("Message", "Shows a message", &message));
-    v.push_back(make_menu("Message 2", "Shows another message", &message2));
-    return v;
-    }
-
+  return std::optional<jtui::state>();
   }
 
-
-void file_menu()
+std::optional<jtui::state> message1(jtui::state st)
   {
-  static std::vector<jtui::menu> m = jtui::build_file_menu();
-  do_menu(m.data(), m.size());
+  jtui::body_message(st, "Hello world!");
+  return st;
   }
 
-void action_menu()
+std::optional<jtui::state> message2(jtui::state st)
   {
-  static std::vector<jtui::menu> m = jtui::build_actions_menu();
-  do_menu(m.data(), m.size());
+  jtui::body_message(st, "This is a message ending with newline\n");
+  return st;
   }
 
-void exit()
+std::optional<jtui::state> file_menu(jtui::state st)
   {
-  jtui::do_exit();
+  std::vector<jtui::menu> v;
+  v.push_back({ std::string("Exit"), std::string("Quit the application"), &quit });
+  st.sub_menu = v;
+  st.active_menu = jtui::active_menu_type::submenu;
+  return st;
   }
 
-void message()
+std::optional<jtui::state> action_menu(jtui::state st)
   {
-  jtui::body_message("Hello world!");
+  std::vector<jtui::menu> v;
+  v.push_back({ std::string("Message 1"), std::string("Prints a message"), &message1 });
+  v.push_back({ std::string("Message 2"), std::string("Prints another message"), &message2 });
+  st.sub_menu = v;
+  st.active_menu = jtui::active_menu_type::submenu;
+  return st;
   }
 
-void message2()
+std::vector<jtui::menu> build_menu()
   {
-  jtui::body_message("Hello other world!\n");
+  std::vector<jtui::menu> v;
+  v.push_back({std::string("File"), std::string("Go inside the file menu"), &file_menu});
+  v.push_back({std::string("Actions"), std::string("Go inside the action menu"), &action_menu});
+  return v;
   }
 
 int main(int argc, char** argv)
   {
-  std::locale::global(std::locale(""));
-  ::setlocale(LC_ALL, "");
-  std::vector<jtui::menu> m = jtui::build_menu();
-  jtui::run(m.data(), m.size(), "jtui demo");
+  std::vector<jtui::menu> main_menu = build_menu();
+  jtui::run(main_menu, std::string("jtui demo"));
   return 0;
   }

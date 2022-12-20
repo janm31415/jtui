@@ -1,6 +1,7 @@
 #include "jtui.h"
 #include <time.h>
 
+
 namespace jtui
   {
 
@@ -22,21 +23,6 @@ namespace jtui
 #define EDITBOXCOLOR     (9 | A_BOLD | A_REVERSE)
 
 #define A_ATTR  (A_ATTRIBUTES ^ A_COLOR) 
-
-  static WINDOW* win_title, * win_main, * win_body, * win_status;
-  static bool quit = false;
-  int nexty, nextx;
-  static int key = ERR;
-  static int ch = ERR;
-
-  menu make_menu(const std::string& name, const std::string& description, menu_function fun_ptr)
-    {
-    menu m;
-    m.name = name;
-    m.description = description;
-    m.fun = fun_ptr;
-    return m;
-    }
 
 
   std::string pad_string(const std::string& str, int length)
@@ -112,383 +98,365 @@ namespace jtui
     wrefresh(win);
     }
 
-  void title_message(const std::string& msg)
-    {
-    mvwaddstr(win_title, 0, 2, msg.c_str());
-    wrefresh(win_title);
-    }
-
-  void body_message(const std::string& msg)
-    {
-    waddstr(win_body, msg.c_str());
-    wrefresh(win_body);
-    }
-
-  void setmenupos(int y, int x)
-    {
-    nexty = y;
-    nextx = x;
-    }
-
-  void getmenupos(int& y, int& x)
-    {
-    y = nexty;
-    x = nextx;
-    }
-
-  int menu_width(const menu* menu_items, const std::size_t number_of_menu_items)
-    {
-    int menu_width = 0;
-    const menu* ptr_menu = menu_items;
-    for (std::size_t i = 0; i < number_of_menu_items; ++i, ++ptr_menu)
-      {
-      if (ptr_menu->name.length() > menu_width)
-        menu_width = ptr_menu->name.length();
-      }
-    return menu_width + 2;
-    }
-
-  void repaintmainmenu(int width, const menu* menu_items, const std::size_t number_of_menu_items)
-    {
-    int i;
-    const menu* p = menu_items;
-
-    for (i = 0; i < number_of_menu_items; ++i, ++p)
-      {
-      std::string text = pre_pad(pad_string(p->name, width - 1), 1);
-      mvwaddstr(win_main, 0, i * width, text.c_str());
-      }
-
-    touchwin(win_main);
-    wrefresh(win_main);
-    }
-
-
-  void repaintmenu(WINDOW* wmenu, const menu* menu_items, const std::size_t number_of_menu_items)
-    {
-    int i;
-    const menu* p = menu_items;
-
-    for (i = 0; i < number_of_menu_items; ++i, ++p)
-      {
-      mvwaddstr(wmenu, i + 1, 2, p->name.c_str());
-      }
-
-    touchwin(wmenu);
-    wrefresh(wmenu);
-    }
-
-  void idle()
-    {
-    char buf[256];
-    time_t t;
-    struct tm* tp;
-
-    if (time(&t) == -1)
-      return;  /* time not available */
-
-    tp = localtime(&t);
-    sprintf(buf, " %.4d-%.2d-%.2d  %.2d:%.2d:%.2d",
-      tp->tm_year + 1900, tp->tm_mon + 1, tp->tm_mday,
-      tp->tm_hour, tp->tm_min, tp->tm_sec);
-
-    mvwaddstr(win_title, 0, body_width - strlen(buf) - 2, buf);
-    wrefresh(win_title);
-    }
-
-  bool keypressed(void)
-    {
-    ch = wgetch(win_body);
-    return ch != ERR;
-    }
-
-  int getkey(void)
-    {
-    int c = ch;
-
-    ch = ERR;
-    return c;
-    }
-
-  int waitforkey()
-    {
-    do idle(); while (!keypressed());
-    return getkey();
-    }
-
-  void status_message(const std::string& msg)
-    {
-    std::string text = pad_string(msg, body_width - 3);
-    mvwaddstr(win_status, 1, 2, text.c_str());
-    wrefresh(win_status);
-    }
-
-  void main_help_1()
-    {
-    status_message("Use ALT to enter the menu.");
-    }
-
-  void main_help_2()
-    {
-    status_message("Use arrow keys to navigate the menu.");
-    }
-
-  void rmline(WINDOW* win, int nr)   /* keeps box lines intact */
+  void rmline(WINDOW* win, int nr)
     {
     std::string text = pad_string(" ", body_width - 2);
     mvwaddstr(win, nr, 1, text.c_str());
     wrefresh(win);
     }
 
-  void rmerror(void)
+  void title_message(const state& current_state, const std::string& msg)
     {
-    rmline(win_status, 0);
+    mvwaddstr(current_state.win_title, 0, 2, msg.c_str());
+    wrefresh(current_state.win_title);
     }
 
-  void rmstatus(void)
+  void body_message(const state& current_state, const std::string& msg)
     {
-    rmline(win_status, 1);
+    waddstr(current_state.win_body, msg.c_str());
+    wrefresh(current_state.win_body);
     }
 
-  void do_menu(const menu* menu_items, const std::size_t number_of_menu_items)
+  void status_message(const state& current_state, const std::string& msg)
     {
-    bool stop = false;
-    int x, y;
-    int old = -1;
-    int cur = 0;
-    int barlen = menu_width(menu_items, number_of_menu_items);
-    WINDOW* win_menu;
-    curs_set(0);
-    getmenupos(y, x);
-    int mheight = (int)number_of_menu_items + 2;
-    int mwidth = barlen + 2;
-    win_menu = newwin(mheight, mwidth, y, x);
-    colorbox(win_menu, SUBMENUCOLOR, 1);
-    repaintmenu(win_menu, menu_items, number_of_menu_items);
+    std::string text = pad_string(msg, body_width - 3);
+    mvwaddstr(current_state.win_status, 1, 2, text.c_str());
+    wrefresh(current_state.win_status);
+    }
 
-    key = ERR;
-
-    while (!stop && !quit)
+  int menu_width(const std::vector<menu>& menu_items)
+    {
+    int menu_width = 0;
+    for (const auto& m : menu_items)
       {
-      if (cur != old)
-        {
-        if (old != -1)
-          {
-          std::string text = pre_pad(pad_string(menu_items[old].name, barlen - 1), 1);
-          mvwaddstr(win_menu, old + 1, 1, text.c_str());
-          }
-
-        setcolor(win_menu, SUBMENUREVCOLOR);
-
-        std::string text = pre_pad(pad_string(menu_items[cur].name, barlen - 1), 1);
-        mvwaddstr(win_menu, cur + 1, 1, text.c_str());
-        setcolor(win_menu, SUBMENUCOLOR);
-        status_message(menu_items[cur].description);
-        old = cur;
-        wrefresh(win_menu);
-        }
-
-      switch (int c = (key != ERR ? key : waitforkey()))
-        {
-        case '\n':
-          touchwin(win_body);
-          wrefresh(win_body);
-          setmenupos(y + 1, x + 1);
-          rmerror();
-
-          key = ERR;
-          curs_set(1);
-          (menu_items[cur].fun)();   /* perform function */
-          curs_set(0);
-
-          repaintmenu(win_menu, menu_items, number_of_menu_items);
-
-#if 0
-          stop = true;      
-#endif
-          old = -1;
-          break;
-
-        case KEY_UP:
-          cur = (cur + number_of_menu_items - 1) % number_of_menu_items;
-          key = ERR;
-          break;
-
-        case KEY_DOWN:
-          cur = (cur + 1) % number_of_menu_items;
-          key = ERR;
-          break;
-
-        case KEY_ESC:
-        case KEY_LEFT:
-        case KEY_RIGHT:
-          if (c == KEY_ESC)
-            key = ERR;  /* return to prev submenu */
-          else
-            key = c;
-          stop = true;
-          break;
-        }
+      if (m.name.length() > menu_width)
+        menu_width = (int)m.name.length();
       }
-
-    rmerror();
-    delwin(win_menu);
-    touchwin(win_body);
-    wrefresh(win_body);
+    return menu_width + 2;
     }
 
-  void main_menu(const menu* menu_items, const std::size_t number_of_menu_items)
+  void cleanup(state current_state)
     {
-    int old = -1;
-    int cur = -1;
-    int barlen = menu_width(menu_items, number_of_menu_items);
-    repaintmainmenu(barlen, menu_items, number_of_menu_items);
-
-    while (!quit)
-      {
-      if (cur < 0)
-        {
-        main_help_1();
-        }
-      else if (cur >= 0 && cur != old)
-        {
-        if (old != -1)
-          {
-          std::string text = pre_pad(pad_string(menu_items[old].name, barlen - 1), 1);
-          mvwaddstr(win_main, 0, old * barlen, text.c_str());
-          status_message(menu_items[cur].description);
-          }
-        else
-          main_help_2();
-
-        setcolor(win_main, MAINMENUREVCOLOR);
-
-        std::string text = pre_pad(pad_string(menu_items[cur].name, barlen - 1), 1);
-        mvwaddstr(win_main, 0, cur * barlen, text.c_str());
-        setcolor(win_main, MAINMENUCOLOR);
-        old = cur;
-        wrefresh(win_main);
-        }
-
-      switch (int c = (key != ERR ? key : waitforkey()))
-        {
-        case KEY_DOWN:
-        case '\n':
-          if (cur >= 0)
-            {
-            touchwin(win_body);
-            wrefresh(win_body);
-            rmerror();
-            setmenupos(title_height + main_menu_height, cur * barlen);
-            curs_set(1);
-            (menu_items[cur].fun)();   /* perform function */
-            curs_set(0);
-
-            switch (key)
-              {
-              case KEY_LEFT:
-                cur = (cur + number_of_menu_items - 1) % number_of_menu_items;
-                key = '\n';
-                break;
-
-              case KEY_RIGHT:
-                cur = (cur + 1) % number_of_menu_items;
-                key = '\n';
-                break;
-
-              default:
-                key = ERR;
-                old = -1;
-                cur = -1;
-              }
-
-            repaintmainmenu(barlen, menu_items, number_of_menu_items);
-            old = -1;
-            }
-          break;
-
-        case KEY_LEFT:
-          if (cur >= 0)
-            {
-            cur = (cur + number_of_menu_items - 1) % number_of_menu_items;
-            }
-          break;
-
-        case KEY_RIGHT:
-          if (cur >= 0)
-            {
-            cur = (cur + 1) % number_of_menu_items;
-            }
-          break;
-
-        case KEY_ALT_L:
-        case KEY_ALT_R:
-          if (cur < 0)
-            {
-            cur = 0;
-            old = -1;
-            }
-          break;
-
-        case KEY_ESC:
-          cur = -1;
-          repaintmainmenu(barlen, menu_items, number_of_menu_items);
-          break;
-        }
-
-      touchwin(win_body);
-      wrefresh(win_body);
-      }
-    }
-
-  void cleanup()
-    {
-    delwin(win_title);
-    delwin(win_main);
-    delwin(win_body);
-    delwin(win_status);
+    delwin(current_state.win_title);
+    delwin(current_state.win_main);
+    delwin(current_state.win_body);
+    delwin(current_state.win_status);
     curs_set(1);
     endwin();
     }
 
-  void run(const menu* menu_items, const std::size_t number_of_menu_items, const std::string& title)
+  state idle(state current_state)
     {
+    char buf[256];
+    time_t t;
+    struct tm* tp;
+
+    if (time(&t) == -1)
+      return current_state;  /* time not available */
+
+    tp = localtime(&t);
+    sprintf(buf, " %.4d-%.2d-%.2d  %.2d:%.2d:%.2d",
+      tp->tm_year + 1900, tp->tm_mon + 1, tp->tm_mday,
+      tp->tm_hour, tp->tm_min, tp->tm_sec);
+
+    mvwaddstr(current_state.win_title, 0, body_width - (int)strlen(buf) - 2, buf);
+    wrefresh(current_state.win_title);
+    return current_state;
+    }
+
+  state draw_main_menu(state current_state)
+    {
+    int i = 0;
+    for (const auto& m : current_state.main_menu)
+      {
+      std::string text = pre_pad(pad_string(m.name, current_state.main_menu_item_width - 1), 1);
+      mvwaddstr(current_state.win_main, 0, i * current_state.main_menu_item_width, text.c_str());
+      ++i;
+      }
+
+    touchwin(current_state.win_main);
+    wrefresh(current_state.win_main);
+
+    if (current_state.current_main_menu < 0)
+      {
+      status_message(current_state, "Use ALT to enter the menu.");
+      }
+    else if (current_state.current_main_menu >= 0 && current_state.current_main_menu != current_state.old_main_menu)
+      {
+      if (current_state.old_main_menu != -1)
+        {
+        std::string text = pre_pad(pad_string(current_state.main_menu[current_state.old_main_menu].name, current_state.main_menu_item_width - 1), 1);
+        mvwaddstr(current_state.win_main, 0, current_state.old_main_menu * current_state.main_menu_item_width, text.c_str());
+        status_message(current_state, current_state.main_menu[current_state.current_main_menu].description);
+        }
+      else
+        {
+        status_message(current_state, "Use arrow keys to navigate the menu.");
+        }
+      setcolor(current_state.win_main, MAINMENUREVCOLOR);
+
+      std::string text = pre_pad(pad_string(current_state.main_menu[current_state.current_main_menu].name, current_state.main_menu_item_width - 1), 1);
+      mvwaddstr(current_state.win_main, 0, current_state.current_main_menu * current_state.main_menu_item_width, text.c_str());
+      setcolor(current_state.win_main, MAINMENUCOLOR);
+      current_state.old_main_menu = current_state.current_main_menu;
+      wrefresh(current_state.win_main);
+      }
+    return current_state;
+    }
+
+  state draw_sub_menu(state current_state)
+    {
+    if (current_state.win_menu == nullptr)
+      {
+      current_state.sub_menu_item_width = menu_width(current_state.sub_menu);
+      int mheight = (int)current_state.sub_menu.size() + 2;
+      int mwidth = current_state.sub_menu_item_width + 2;
+      current_state.win_menu = newwin(mheight, mwidth, current_state.menu_y, current_state.menu_x);
+      colorbox(current_state.win_menu, SUBMENUCOLOR, 1);
+      current_state.old_sub_menu = -1;
+      current_state.current_sub_menu = 0;
+      }
+    int i = 0;
+    for (const auto& m : current_state.sub_menu)
+      {
+      mvwaddstr(current_state.win_menu, i + 1, 2, m.name.c_str());
+      ++i;
+      }
+    touchwin(current_state.win_menu);
+    wrefresh(current_state.win_menu);
+
+    if (current_state.current_sub_menu != current_state.old_sub_menu)
+      {
+      if (current_state.old_sub_menu != -1)
+        {
+        std::string text = pre_pad(pad_string(current_state.sub_menu[current_state.old_sub_menu].name, current_state.sub_menu_item_width - 1), 1);
+        mvwaddstr(current_state.win_menu, current_state.old_sub_menu + 1, 1, text.c_str());
+        }
+
+      setcolor(current_state.win_menu, SUBMENUREVCOLOR);
+
+      std::string text = pre_pad(pad_string(current_state.sub_menu[current_state.current_sub_menu].name, current_state.sub_menu_item_width - 1), 1);
+      mvwaddstr(current_state.win_menu, current_state.current_sub_menu + 1, 1, text.c_str());
+      setcolor(current_state.win_menu, SUBMENUCOLOR);
+      status_message(current_state, current_state.sub_menu[current_state.current_sub_menu].description);
+      current_state.old_sub_menu = current_state.current_sub_menu;
+      wrefresh(current_state.win_menu);
+      }
+
+    return current_state;
+    }
+
+  state draw(state current_state)
+    {
+    state new_state = idle(current_state);
+    if (new_state.active_menu == active_menu_type::submenu)
+      new_state = draw_sub_menu(new_state);
+    else
+      new_state = draw_main_menu(new_state);
+    return new_state;
+    }
+
+  std::optional<state> enter_submenu(state current_state)
+    {
+    touchwin(current_state.win_body);
+    wrefresh(current_state.win_body);
+    rmline(current_state.win_status, 0);
+    current_state.menu_x = current_state.current_main_menu * current_state.main_menu_item_width;
+    current_state.menu_y = title_height + main_menu_height;
+    curs_set(1);
+    std::optional<state> new_state = (current_state.main_menu[current_state.current_main_menu].fun)(current_state);   /* perform function */
+    curs_set(0);
+    return new_state;
+    }
+
+  std::optional<state> process_input(state current_state)
+    {
+    for (;;)
+      {
+      int c = (current_state.key != ERR) ? current_state.key : wgetch(current_state.win_body);
+      if (c != ERR)
+        {
+        current_state.key = ERR;
+        switch (c)
+          {
+          case KEY_UP:
+          {
+          if (current_state.active_menu == active_menu_type::submenu)
+            {
+            current_state.current_sub_menu = (current_state.current_sub_menu + (int)current_state.sub_menu.size() - 1) % (int)current_state.sub_menu.size();
+            if (current_state.sub_menu.size() == 1)
+              current_state.old_sub_menu = -1;
+            return current_state;
+            }
+          break;
+          }
+          case KEY_DOWN:
+          {
+          if (current_state.active_menu == active_menu_type::submenu)
+            {
+            current_state.current_sub_menu = (current_state.current_sub_menu + 1) % (int)current_state.sub_menu.size();
+            if (current_state.sub_menu.size() == 1)
+              current_state.old_sub_menu = -1;
+            return current_state;
+            }
+          if (current_state.active_menu == active_menu_type::main && current_state.current_main_menu >= 0)
+            {
+            return enter_submenu(current_state);
+            }
+          break;
+          }
+          case '\n':
+          {
+          if (current_state.active_menu == active_menu_type::main && current_state.current_main_menu >= 0)
+            {
+            return enter_submenu(current_state);
+            }
+          if (current_state.active_menu == active_menu_type::submenu)
+            {
+            touchwin(current_state.win_body);
+            wrefresh(current_state.win_body);
+            rmline(current_state.win_status, 0);
+            current_state.old_sub_menu = -1;
+            curs_set(1);
+            std::optional<state> new_state = (current_state.sub_menu[current_state.current_sub_menu].fun)(current_state);   /* perform function */
+            curs_set(0);
+            return new_state;
+            }
+          break;
+          }
+          case KEY_LEFT:
+          {
+          if (current_state.active_menu == active_menu_type::main && current_state.current_main_menu >= 0)
+            {
+            current_state.current_main_menu = (current_state.current_main_menu + (int)current_state.main_menu.size() - 1) % (int)current_state.main_menu.size();
+            return current_state;
+            }
+          if (current_state.active_menu == active_menu_type::submenu)
+            {
+            rmline(current_state.win_status, 0);
+            delwin(current_state.win_menu);
+            current_state.win_menu = nullptr;
+            touchwin(current_state.win_body);
+            wrefresh(current_state.win_body);
+            current_state.active_menu = active_menu_type::main;
+            current_state.old_main_menu = -1;
+            current_state.current_main_menu = (current_state.current_main_menu + (int)current_state.main_menu.size() - 1) % (int)current_state.main_menu.size();
+            current_state.key = '\n';
+            return current_state;
+            }
+          break;
+          }
+          case KEY_RIGHT:
+          {
+          if (current_state.active_menu == active_menu_type::main && current_state.current_main_menu >= 0)
+            {
+            current_state.current_main_menu = (current_state.current_main_menu + 1) % (int)current_state.main_menu.size();
+            return current_state;
+            }
+          if (current_state.active_menu == active_menu_type::submenu)
+            {
+            rmline(current_state.win_status, 0);
+            delwin(current_state.win_menu);
+            current_state.win_menu = nullptr;
+            touchwin(current_state.win_body);
+            wrefresh(current_state.win_body);
+            current_state.active_menu = active_menu_type::main;
+            current_state.old_main_menu = -1;
+            current_state.current_main_menu = (current_state.current_main_menu + 1) % (int)current_state.main_menu.size();
+            current_state.key = '\n';
+            return current_state;
+            }
+          break;
+          }
+          case KEY_ALT_L:
+          case KEY_ALT_R:
+          {
+          if (current_state.active_menu != active_menu_type::submenu && current_state.current_main_menu < 0)
+            {
+            current_state.current_main_menu = 0;
+            current_state.old_main_menu = -1;
+            current_state.active_menu = active_menu_type::main;
+            return current_state;
+            }
+          break;
+          }
+          case KEY_ESC:
+          {
+          if (current_state.active_menu == active_menu_type::submenu)
+            {
+            rmline(current_state.win_status, 0);
+            delwin(current_state.win_menu);
+            current_state.win_menu = nullptr;
+            touchwin(current_state.win_body);
+            wrefresh(current_state.win_body);
+            current_state.active_menu = active_menu_type::main;
+            current_state.old_main_menu = -1;
+            return current_state;
+            }
+          else if (current_state.active_menu == active_menu_type::main && current_state.current_main_menu >= 0)
+            {
+            current_state.current_main_menu = -1;
+            current_state.active_menu = active_menu_type::none;
+            return current_state;
+            }
+          break;
+          }
+          default:
+            break;
+          }
+        }
+      else
+        {
+        current_state = idle(current_state);
+        }
+      }
+    }
+
+  void run(const std::vector<menu>& main_menu, const std::string& title)
+    {
+    state current_state;
+    current_state.main_menu = main_menu;
+    current_state.main_menu_item_width = menu_width(current_state.main_menu);
     initscr();
     initcolor();
 
-    win_title = subwin(stdscr, title_height, body_width, 0, 0);
-    win_main = subwin(stdscr, main_menu_height, body_width, title_height, 0);
-    win_body = subwin(stdscr, body_height, body_width, title_height + main_menu_height, 0);
-    win_status = subwin(stdscr, status_window_height, body_width, title_height + main_menu_height + body_height, 0);
+    current_state.win_title = subwin(stdscr, title_height, body_width, 0, 0);
+    current_state.win_main = subwin(stdscr, main_menu_height, body_width, title_height, 0);
+    current_state.win_body = subwin(stdscr, body_height, body_width, title_height + main_menu_height, 0);
+    current_state.win_status = subwin(stdscr, status_window_height, body_width, title_height + main_menu_height + body_height, 0);
 
-    colorbox(win_title, TITLECOLOR, 0);
-    colorbox(win_main, MAINMENUCOLOR, 0);
-    colorbox(win_body, BODYCOLOR, 0);
-    colorbox(win_status, STATUSCOLOR, 0);
+    colorbox(current_state.win_title, TITLECOLOR, 0);
+    colorbox(current_state.win_main, MAINMENUCOLOR, 0);
+    colorbox(current_state.win_body, BODYCOLOR, 0);
+    colorbox(current_state.win_status, STATUSCOLOR, 0);
 
-    title_message(pad_string(title, body_width - 3));
+    title_message(current_state, pad_string(title, body_width - 3));
 
     cbreak();
     noecho();
     PDC_return_key_modifiers(true);
     curs_set(0);
-    nodelay(win_body, true);
+    nodelay(current_state.win_body, true);
     halfdelay(10);
-    keypad(win_body, true);
-    scrollok(win_body, true);
+    keypad(current_state.win_body, true);
+    scrollok(current_state.win_body, true);
 
     leaveok(stdscr, true);
-    leaveok(win_title, true);
-    leaveok(win_main, true);
-    leaveok(win_status, true);
+    leaveok(current_state.win_title, true);
+    leaveok(current_state.win_main, true);
+    leaveok(current_state.win_status, true);
 
-    main_menu(menu_items, number_of_menu_items);
+    current_state = draw(current_state);
 
-    cleanup();
+    while (std::optional<state> new_state = process_input(current_state))
+      {
+      current_state = *new_state;
+      current_state = draw(current_state);
+      }
+
+    cleanup(current_state);
     }
 
-  void do_exit()
-    {
-    quit = true;
-    }
-  }
+
+
+  } // namespace jtui
