@@ -118,6 +118,12 @@ namespace jtui
     wrefresh(win_title);
     }
 
+  void body_message(const std::string& msg)
+    {
+    waddstr(win_body, msg.c_str());
+    wrefresh(win_body);
+    }
+
   void setmenupos(int y, int x)
     {
     nexty = y;
@@ -165,7 +171,7 @@ namespace jtui
 
     for (i = 0; i < number_of_menu_items; ++i, ++p)
       {
-      mvwaddstr(win_main, i + 1, 2, p->name.c_str());
+      mvwaddstr(wmenu, i + 1, 2, p->name.c_str());
       }
 
     touchwin(wmenu);
@@ -297,7 +303,9 @@ namespace jtui
 
           repaintmenu(win_menu, menu_items, number_of_menu_items);
 
-          stop = true;
+#if 0
+          stop = true;      
+#endif
           old = -1;
           break;
 

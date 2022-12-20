@@ -26,4 +26,7 @@ namespace jtui
   void run(const menu* menu_items, const std::size_t number_of_menu_items, const std::string& title);
 
   void do_exit();
+
+  void body_message(const std::string& msg);
+
   }

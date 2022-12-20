@@ -6,6 +6,7 @@ void file_menu();
 void action_menu();
 void exit();
 void message();
+void message2();
 
 namespace jtui
   {
@@ -29,6 +30,7 @@ namespace jtui
     {
     std::vector<menu> v;
     v.push_back(make_menu("Message", "Shows a message", &message));
+    v.push_back(make_menu("Message 2", "Shows another message", &message2));
     return v;
     }
 
@@ -54,11 +56,18 @@ void exit()
 
 void message()
   {
+  jtui::body_message("Hello world!");
+  }
+
+void message2()
+  {
+  jtui::body_message("Hello other world!\n");
   }
 
 int main(int argc, char** argv)
   {
-  //setlocale(LC_ALL, "");
+  std::locale::global(std::locale(""));
+  ::setlocale(LC_ALL, "");
   std::vector<jtui::menu> m = jtui::build_menu();
   jtui::run(m.data(), m.size(), "jtui demo");
   return 0;
