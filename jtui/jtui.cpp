@@ -813,7 +813,7 @@ namespace jtui
     PDC_return_key_modifiers(true);
     curs_set(0);
     nodelay(current_state.win_body, true);
-    halfdelay(10);
+    halfdelay(1);
     keypad(current_state.win_body, true);
     scrollok(current_state.win_body, true);
 
