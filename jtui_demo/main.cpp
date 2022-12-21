@@ -1,3 +1,6 @@
+#ifdef _WIN32
+#include <iostream>
+#endif
 #include "jtui/jtui.h"
 #include <vector>
 

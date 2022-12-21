@@ -283,6 +283,8 @@ namespace jtui
     int maxx = getmaxx(current_state.win_inputline);
     for (int i = 0; i < (int)current_state.editbox_field_values.size(); ++i)
       {
+      if (i == current_state.editbox_active_line)
+        continue;
       std::string text = pad_string(current_state.editbox_field_values[i], maxx);
       mvwprintw(current_state.win_editbox, i + 1, current_state.editbox_field_width + 3, "%s", text.c_str());
       }
