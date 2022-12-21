@@ -283,13 +283,12 @@ namespace jtui
     int maxx = getmaxx(current_state.win_inputline);
     for (int i = 0; i < (int)current_state.editbox_field_values.size(); ++i)
       {
-      if (i == current_state.editbox_active_line)
-        continue;
       std::string text = pad_string(current_state.editbox_field_values[i], maxx);
       mvwprintw(current_state.win_editbox, i + 1, current_state.editbox_field_width + 3, "%s", text.c_str());
       }
 
-    wrefresh(current_state.win_editbox);
+    wnoutrefresh(current_state.win_editbox); // refresh to virtual screen to avoid flicker
+    touchwin(current_state.win_inputline);
     werase(current_state.win_inputline);
     curs_set(current_state.editbox_insert_mode ? 2 : 1);
     std::string text = current_state.editbox_field_values[current_state.editbox_active_line];
