@@ -16,7 +16,7 @@ std::optional<jtui::state> subsub(jtui::state st)
   {
   std::vector<jtui::menu> v;
   v.push_back({ std::string("Sub message 1"), std::string("Prints a message"), &message1 });
-  v.push_back({ std::string("Sub message 2"), std::string("Prints another message"), &message2 });
+  v.push_back({ std::string("suB message 2"), std::string("Prints another message"), &message2 });
   return do_submenu(st, v);
   }
 
@@ -57,7 +57,7 @@ std::optional<jtui::state> file_menu(jtui::state st)
   {
   std::vector<jtui::menu> v;
   v.push_back({ std::string("Command"), std::string("Enter a command"), &command});
-  v.push_back({ std::string("Exit"), std::string("Quit the application"), &jtui::do_exit });
+  v.push_back({ std::string("eXit"), std::string("Quit the application"), &jtui::do_exit });
   return do_submenu(st, v);
   }
 
@@ -65,7 +65,7 @@ std::optional<jtui::state> action_menu(jtui::state st)
   {
   std::vector<jtui::menu> v;
   v.push_back({ std::string("Message 1"), std::string("Prints a message"), &message1 });
-  v.push_back({ std::string("Message 2"), std::string("Prints another message"), &message2 });
+  v.push_back({ std::string("mEssage 2"), std::string("Prints another message"), &message2 });
   v.push_back({ std::string("Sub sub"), std::string("Make a sub sub menu"), &subsub });
   return do_submenu(st, v);
   }
@@ -80,6 +80,8 @@ std::vector<jtui::menu> build_menu()
 
 int main(int argc, char** argv)
   {
+  std::locale::global(std::locale(""));
+  ::setlocale(LC_ALL, "");
   std::vector<jtui::menu> main_menu = build_menu();
   jtui::run(main_menu, std::string("jtui demo"));
   return 0;

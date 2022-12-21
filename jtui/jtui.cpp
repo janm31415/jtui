@@ -48,6 +48,16 @@ namespace jtui
     return prepadded.append(str);
     }
 
+  int hotkey(const std::string& str)
+    {
+    for (auto ch : str)
+      {
+      if (std::isupper((int)ch))
+        return (int)ch;
+      }
+    return -1;
+    }
+
   void initcolor()
     {
     if (has_colors())
@@ -98,17 +108,28 @@ namespace jtui
     wrefresh(win);
     }
 
-  void rmline(WINDOW* win, int nr)
+  void remove_line(WINDOW* win, int nr)
     {
     std::string text = pad_string(" ", body_width - 2);
     mvwaddstr(win, nr, 1, text.c_str());
     wrefresh(win);
     }
 
-  void title_message(const state& current_state, const std::string& msg)
+  void remove_error_message(const state& current_state)
+    {
+    remove_line(current_state.win_status, 0);
+    }
+
+  void remove_status_message(const state& current_state)
+    {
+    remove_line(current_state.win_status, 1);
+    }
+
+  std::optional<state> title_message(state current_state, const std::string& msg)
     {
     mvwaddstr(current_state.win_title, 0, 2, msg.c_str());
     wrefresh(current_state.win_title);
+    return current_state;
     }
 
   std::optional<state> body_message(state current_state, const std::string& msg)
@@ -118,11 +139,20 @@ namespace jtui
     return current_state;
     }
 
-  void status_message(const state& current_state, const std::string& msg)
+  std::optional<state> status_message(state current_state, const std::string& msg)
     {
     std::string text = pad_string(msg, body_width - 3);
     mvwaddstr(current_state.win_status, 1, 2, text.c_str());
     wrefresh(current_state.win_status);
+    return current_state;
+    }
+
+  std::optional<state> error_message(state current_state, const std::string& msg)
+    {
+    std::string text = pad_string(msg, body_width - 3);
+    mvwaddstr(current_state.win_status, 0, 2, text.c_str());
+    wrefresh(current_state.win_status);
+    return current_state;
     }
 
   int menu_width(const std::vector<menu>& menu_items)
@@ -180,7 +210,7 @@ namespace jtui
 
     if (current_state.current_main_menu < 0)
       {
-      status_message(current_state, "Use ALT to enter the menu.");
+      current_state = *status_message(current_state, "Use ALT to enter the menu.");
       }
     else if (current_state.current_main_menu >= 0 && current_state.current_main_menu != current_state.old_main_menu)
       {
@@ -188,11 +218,11 @@ namespace jtui
         {
         std::string text = pre_pad(pad_string(current_state.main_menu[current_state.old_main_menu].name, current_state.main_menu_item_width - 1), 1);
         mvwaddstr(current_state.win_main, 0, current_state.old_main_menu * current_state.main_menu_item_width, text.c_str());
-        status_message(current_state, current_state.main_menu[current_state.current_main_menu].description);
+        current_state = *status_message(current_state, current_state.main_menu[current_state.current_main_menu].description);
         }
       else
         {
-        status_message(current_state, "Use arrow keys to navigate the menu.");
+        current_state = *status_message(current_state, "Use arrow keys to navigate the menu.");
         }
       setcolor(current_state.win_main, MAINMENUREVCOLOR);
 
@@ -239,7 +269,7 @@ namespace jtui
       std::string text = pre_pad(pad_string(current_state.sub_menu[current_state.current_sub_menu].name, current_state.sub_menu_item_width - 1), 1);
       mvwaddstr(current_state.win_menu, current_state.current_sub_menu + 1, 1, text.c_str());
       setcolor(current_state.win_menu, SUBMENUCOLOR);
-      status_message(current_state, current_state.sub_menu[current_state.current_sub_menu].description);
+      current_state = *status_message(current_state, current_state.sub_menu[current_state.current_sub_menu].description);
       current_state.old_sub_menu = current_state.current_sub_menu;
       wrefresh(current_state.win_menu);
       }
@@ -315,7 +345,7 @@ namespace jtui
     current_state.activity = jtui::activity_type::submenu;
     if (current_state.win_menu != nullptr)
       {
-      rmline(current_state.win_status, 0);
+      remove_error_message(current_state);
       delwin(current_state.win_menu);
       current_state.win_menu = nullptr;
       touchwin(current_state.win_body);
@@ -332,7 +362,7 @@ namespace jtui
     {
     touchwin(current_state.win_body);
     wrefresh(current_state.win_body);
-    rmline(current_state.win_status, 0);
+    remove_error_message(current_state);
     current_state.menu_x = current_state.current_main_menu * current_state.main_menu_item_width;
     current_state.menu_y = title_height + main_menu_height;
     curs_set(1);
@@ -350,7 +380,7 @@ namespace jtui
     {
     if (current_state.win_menu != nullptr)
       {
-      rmline(current_state.win_status, 0);
+      remove_error_message(current_state);
       delwin(current_state.win_menu);
       current_state.win_menu = nullptr;
       touchwin(current_state.win_body);
@@ -401,7 +431,7 @@ namespace jtui
 
   std::optional<state> done_editbox(state current_state)
     {
-    rmline(current_state.win_status, 0);
+    remove_error_message(current_state);
     delwin(current_state.win_editbox);
     current_state.win_editbox = nullptr;
     delwin(current_state.win_inputline);
@@ -419,7 +449,7 @@ namespace jtui
 
   std::optional<state> cancel_editbox(state current_state)
     {
-    rmline(current_state.win_status, 0);
+    remove_error_message(current_state);
     delwin(current_state.win_editbox);
     current_state.win_editbox = nullptr;
     delwin(current_state.win_inputline);
@@ -450,7 +480,19 @@ namespace jtui
 
   bool is_printable(int c)
     {
-    return (c > 31 && c < 127);
+    return std::isprint(c) == 0 ? false : true;    
+    }
+
+  std::optional<state> execute_submenu_item(state current_state)
+    {
+    touchwin(current_state.win_body);
+    wrefresh(current_state.win_body);
+    remove_error_message(current_state);
+    current_state.old_sub_menu = -1;
+    curs_set(1);
+    std::optional<state> new_state = (current_state.sub_menu[current_state.current_sub_menu].fun)(current_state);   /* perform function */
+    curs_set(0);
+    return new_state;
     }
 
   std::optional<state> process_input(state current_state)
@@ -528,14 +570,7 @@ namespace jtui
             }
           if (current_state.activity == activity_type::submenu)
             {
-            touchwin(current_state.win_body);
-            wrefresh(current_state.win_body);
-            rmline(current_state.win_status, 0);
-            current_state.old_sub_menu = -1;
-            curs_set(1);
-            std::optional<state> new_state = (current_state.sub_menu[current_state.current_sub_menu].fun)(current_state);   /* perform function */
-            curs_set(0);
-            return new_state;
+            return execute_submenu_item(current_state);
             }
           if (current_state.activity == activity_type::editbox)
             {
@@ -552,7 +587,7 @@ namespace jtui
             }
           if (current_state.activity == activity_type::submenu)
             {
-            rmline(current_state.win_status, 0);
+            remove_error_message(current_state);
             delwin(current_state.win_menu);
             current_state.win_menu = nullptr;
             touchwin(current_state.win_body);
@@ -581,7 +616,7 @@ namespace jtui
             }
           if (current_state.activity == activity_type::submenu)
             {
-            rmline(current_state.win_status, 0);
+            remove_error_message(current_state);
             delwin(current_state.win_menu);
             current_state.win_menu = nullptr;
             touchwin(current_state.win_body);
@@ -617,7 +652,7 @@ namespace jtui
           {
           if (current_state.activity == activity_type::submenu)
             {
-            rmline(current_state.win_status, 0);
+            remove_error_message(current_state);
             delwin(current_state.win_menu);
             current_state.win_menu = nullptr;
             touchwin(current_state.win_body);
@@ -713,6 +748,34 @@ namespace jtui
                 return current_state;
                 }
               }
+            if (c >= 0 && ((current_state.activity == activity_type::main) || (current_state.activity == activity_type::none)))
+              {
+              for (int i = 0; i < (int)current_state.main_menu.size(); ++i)
+                {
+                if (hotkey(current_state.main_menu[i].name) == std::toupper(c))
+                  {
+                  current_state.activity = activity_type::main;
+                  current_state.current_main_menu = i;
+                  current_state.old_main_menu = -1;
+                  current_state = draw(current_state);
+                  return enter_submenu(current_state);
+                  }
+                }
+              }
+            if (c >= 0 && (current_state.activity == activity_type::submenu))
+              {
+              for (int i = 0; i < (int)current_state.sub_menu.size(); ++i)
+                {
+                if (hotkey(current_state.sub_menu[i].name) == std::toupper(c))
+                  {
+                  current_state.old_main_menu = -1;
+                  current_state.current_main_menu = -1;
+                  current_state.current_sub_menu = i;
+                  current_state = draw(current_state);
+                  return execute_submenu_item(current_state);
+                  }
+                }
+              }
             break;
           }
         }
@@ -743,7 +806,7 @@ namespace jtui
 
     PDC_set_title(title.c_str());
 
-    title_message(current_state, pad_string(title, body_width - 3));
+    current_state = *title_message(current_state, pad_string(title, body_width - 3));
 
     cbreak();
     noecho();

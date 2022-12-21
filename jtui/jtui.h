@@ -60,11 +60,18 @@ namespace jtui
     activity_type activity = activity_type::none;
     action on_editbox_ok = nullptr;
     action on_editbox_cancel = nullptr;
+    void* user_data = nullptr;
     };
 
   void run(const std::vector<menu>& main_menu, const std::string& title);
 
   std::optional<state> body_message(state current_state, const std::string& msg);
+
+  std::optional<state> status_message(state current_state, const std::string& msg);
+
+  std::optional<state> error_message(state current_state, const std::string& msg);
+
+  std::optional<state> title_message(state current_state, const std::string& msg);
 
   std::optional<state> do_submenu(state current_state, const std::vector<menu>& sub_menu);
 
