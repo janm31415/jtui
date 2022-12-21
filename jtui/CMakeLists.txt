@@ -15,6 +15,10 @@ set(CMAKE_C_FLAGS_RELEASE "/W4 /MP /GF /O2 /Ob2 /Oi /Ot /MD /Zi /DNDEBUG")
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif(WIN32)
 
+if (${PDCURSES_TARGET} STREQUAL "sdl2")
+add_definitions(-DPDCURSES_WITH_SDL)
+endif (${PDCURSES_TARGET} STREQUAL "sdl2")
+
 if (WIN32)
 add_definitions(-DPDC_DLL_BUILD)
 endif (WIN32)

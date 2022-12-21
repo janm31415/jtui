@@ -1,6 +1,10 @@
 #include "jtui.h"
 #include <time.h>
 
+#ifdef PDCURSES_WITH_SDL
+#include "PDCurses/sdl2/pdcsdl.h"
+#endif
+
 
 namespace jtui
   {
@@ -128,14 +132,14 @@ namespace jtui
   std::optional<state> title_message(state current_state, const std::string& msg)
     {
     mvwaddstr(current_state.win_title, 0, 2, msg.c_str());
-    wrefresh(current_state.win_title);
+    wnoutrefresh(current_state.win_title);
     return current_state;
     }
 
   std::optional<state> body_message(state current_state, const std::string& msg)
     {
     waddstr(current_state.win_body, msg.c_str());
-    wrefresh(current_state.win_body);
+    wnoutrefresh(current_state.win_body);
     return current_state;
     }
 
@@ -143,7 +147,7 @@ namespace jtui
     {
     std::string text = pad_string(msg, body_width - 3);
     mvwaddstr(current_state.win_status, 1, 2, text.c_str());
-    wrefresh(current_state.win_status);
+    wnoutrefresh(current_state.win_status);
     return current_state;
     }
 
@@ -151,7 +155,7 @@ namespace jtui
     {
     std::string text = pad_string(msg, body_width - 3);
     mvwaddstr(current_state.win_status, 0, 2, text.c_str());
-    wrefresh(current_state.win_status);
+    wnoutrefresh(current_state.win_status);
     return current_state;
     }
 
@@ -206,7 +210,7 @@ namespace jtui
       }
 
     touchwin(current_state.win_main);
-    wrefresh(current_state.win_main);
+    wnoutrefresh(current_state.win_main);
 
     if (current_state.current_main_menu < 0)
       {
@@ -254,7 +258,7 @@ namespace jtui
       ++i;
       }
     touchwin(current_state.win_menu);
-    wrefresh(current_state.win_menu);
+    wnoutrefresh(current_state.win_menu); // avoid flicker
 
     if (current_state.current_sub_menu != current_state.old_sub_menu)
       {
@@ -332,6 +336,10 @@ namespace jtui
         new_state = draw_main_menu(new_state);
         break;
       }
+    refresh();
+#ifdef PDCURSES_WITH_SDL
+    SDL_UpdateWindowSurface(pdc_window);
+#endif
     return new_state;
     }
 
@@ -439,7 +447,7 @@ namespace jtui
     current_state.win_inputline = nullptr;
     curs_set(0);
     touchwin(current_state.win_body);
-    wrefresh(current_state.win_body);
+    wnoutrefresh(current_state.win_body);
     current_state.activity = activity_type::main;
     current_state.old_main_menu = -1;
     action done_action = current_state.on_editbox_ok;
@@ -457,7 +465,7 @@ namespace jtui
     current_state.win_inputline = nullptr;
     curs_set(0);
     touchwin(current_state.win_body);
-    wrefresh(current_state.win_body);
+    wnoutrefresh(current_state.win_body);
     current_state.activity = activity_type::main;
     current_state.old_main_menu = -1;
     action cancel_action = current_state.on_editbox_cancel;
@@ -592,7 +600,7 @@ namespace jtui
             delwin(current_state.win_menu);
             current_state.win_menu = nullptr;
             touchwin(current_state.win_body);
-            wrefresh(current_state.win_body);
+            wnoutrefresh(current_state.win_body);
             current_state.activity = activity_type::main;
             current_state.old_main_menu = -1;
             current_state.current_main_menu = (current_state.current_main_menu + (int)current_state.main_menu.size() - 1) % (int)current_state.main_menu.size();
@@ -621,7 +629,7 @@ namespace jtui
             delwin(current_state.win_menu);
             current_state.win_menu = nullptr;
             touchwin(current_state.win_body);
-            wrefresh(current_state.win_body);
+            wnoutrefresh(current_state.win_body);
             current_state.activity = activity_type::main;
             current_state.old_main_menu = -1;
             current_state.current_main_menu = (current_state.current_main_menu + 1) % (int)current_state.main_menu.size();
@@ -770,7 +778,6 @@ namespace jtui
                 if (hotkey(current_state.sub_menu[i].name) == std::toupper(c))
                   {
                   current_state.old_main_menu = -1;
-                  current_state.current_main_menu = -1;
                   current_state.current_sub_menu = i;
                   current_state = draw(current_state);
                   return execute_submenu_item(current_state);
