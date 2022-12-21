@@ -205,7 +205,7 @@ namespace jtui
     return current_state;
     }
 
-  state draw_sub_menu(state current_state)
+  state draw_submenu(state current_state)
     {
     if (current_state.win_menu == nullptr)
       {
@@ -247,17 +247,45 @@ namespace jtui
     return current_state;
     }
 
+  state draw_editbox(state current_state)
+    {
+    touchwin(current_state.win_editbox);
+    int maxx = getmaxx(current_state.win_inputline);
+    for (int i = 0; i < (int)current_state.editbox_field_values.size(); ++i)
+      {
+      std::string text = pad_string(current_state.editbox_field_values[i], maxx);
+      mvwprintw(current_state.win_editbox, i + 1, current_state.editbox_field_width + 3, "%s", text.c_str());
+      }
+
+    wrefresh(current_state.win_editbox);
+    werase(current_state.win_inputline);
+    std::string text = pad_string(current_state.editbox_field_values[current_state.editbox_active_line], maxx);
+    mvwprintw(current_state.win_inputline, 0, 0, "%s", text.c_str());
+    curs_set(current_state.editbox_insert_mode ? 2 : 1);
+    wmove(current_state.win_inputline, 0, current_state.editbox_cursor_pos);
+    wrefresh(current_state.win_inputline);
+    return current_state;
+    }
+
   state draw(state current_state)
     {
     state new_state = idle(current_state);
-    if (new_state.active_menu == active_menu_type::submenu)
-      new_state = draw_sub_menu(new_state);
-    else
-      new_state = draw_main_menu(new_state);
+    switch (new_state.activity)
+      {
+      case activity_type::submenu:
+        new_state = draw_submenu(new_state);
+        break;
+      case activity_type::editbox:
+        new_state = draw_editbox(new_state);
+        break;
+      default:
+        new_state = draw_main_menu(new_state);
+        break;
+      }
     return new_state;
     }
 
-  std::optional<state> do_exit()
+  std::optional<state> do_exit(state /*current_state*/)
     {
     return std::optional<state>();
     }
@@ -265,7 +293,7 @@ namespace jtui
   std::optional<state> do_submenu(state current_state, const std::vector<menu>& sub_menu)
     {
     current_state.sub_menu = sub_menu;
-    current_state.active_menu = jtui::active_menu_type::submenu;
+    current_state.activity = jtui::activity_type::submenu;
     if (current_state.win_menu != nullptr)
       {
       rmline(current_state.win_status, 0);
@@ -294,11 +322,119 @@ namespace jtui
     return new_state;
     }
 
+  std::optional<state> do_editbox(state current_state, const std::vector<std::string>& field_names, const std::vector<std::string>& field_values, int edit_length)
+    {
+    if (current_state.win_menu != nullptr)
+      {
+      rmline(current_state.win_status, 0);
+      delwin(current_state.win_menu);
+      current_state.win_menu = nullptr;
+      touchwin(current_state.win_body);
+      wrefresh(current_state.win_body);
+      }
+
+    int field_width = 0;
+    for (const auto& s : field_names)
+      {
+      if (s.length() > field_width)
+        field_width = (int)s.length();
+      }
+    int nlines = (int)field_names.size() + 2;
+    int ncols = field_width + edit_length + 4;
+
+    int maxy, maxx, posy, posx;
+    getyx(current_state.win_body, posy, posx);
+    getmaxyx(current_state.win_body, maxy, maxx);
+
+    int begy = ((maxy - posy) - nlines) / 2 + posy;
+    int begx = ((maxx - posx) - ncols) / 2 + posx;
+
+    current_state.win_editbox = newwin(nlines, ncols, begy, begx);
+    colorbox(current_state.win_editbox, INPUTBOXCOLOR, 1);
+
+    for (int i = 0; i < (int)field_names.size(); ++i)
+      mvwprintw(current_state.win_editbox, i + 1, 2, "%s", field_names[i].c_str());
+
+    int cury, curx;
+    getyx(current_state.win_editbox, cury, curx);
+    current_state.win_inputline = subwin(current_state.win_editbox, 1, edit_length, begy + 1, begx + 3 + field_width);
+    current_state.editbox_active_line = 0;
+    colorbox(current_state.win_inputline, EDITBOXCOLOR, 0);
+    keypad(current_state.win_inputline, true);
+
+    current_state.editbox_cursor_pos = 0;
+    current_state.editbox_field_width = field_width;
+    current_state.editbox_field_values = field_values;
+    while (current_state.editbox_field_values.size() > field_names.size())
+      current_state.editbox_field_values.pop_back();
+    while (current_state.editbox_field_values.size() < field_names.size())
+      current_state.editbox_field_values.emplace_back();
+    current_state.activity = activity_type::editbox;
+    return current_state;
+    }
+
+  std::optional<state> done_editbox(state current_state)
+    {
+    rmline(current_state.win_status, 0);
+    delwin(current_state.win_editbox);
+    current_state.win_editbox = nullptr;
+    delwin(current_state.win_inputline);
+    current_state.win_inputline = nullptr;
+    curs_set(0);
+    touchwin(current_state.win_body);
+    wrefresh(current_state.win_body);
+    current_state.activity = activity_type::main;
+    current_state.old_main_menu = -1;
+    return current_state;
+    }
+
+  std::optional<state> cancel_editbox(state current_state)
+    {
+    rmline(current_state.win_status, 0);
+    delwin(current_state.win_editbox);
+    current_state.win_editbox = nullptr;
+    delwin(current_state.win_inputline);
+    current_state.win_inputline = nullptr;
+    curs_set(0);
+    touchwin(current_state.win_body);
+    wrefresh(current_state.win_body);
+    current_state.activity = activity_type::main;
+    current_state.old_main_menu = -1;
+    return current_state;
+    }
+
+  std::optional<state> next_editbox(state current_state)
+    {
+    if (current_state.editbox_active_line == (int)current_state.editbox_field_values.size() - 1)
+      return done_editbox(current_state);
+    current_state.editbox_active_line = (current_state.editbox_active_line + 1) % (int)current_state.editbox_field_values.size();
+    if (current_state.editbox_cursor_pos > (int)current_state.editbox_field_values[current_state.editbox_active_line].size())
+      current_state.editbox_cursor_pos = (int)current_state.editbox_field_values[current_state.editbox_active_line].size();
+    int begy, begx;
+    getbegyx(current_state.win_editbox, begy, begx);
+    mvwin(current_state.win_inputline, begy + current_state.editbox_active_line + 1, begx + current_state.editbox_field_width + 3);
+    return current_state;
+    }
+
+  bool is_printable(int c)
+    {
+    return (c > 31 && c < 127);
+    }
+
   std::optional<state> process_input(state current_state)
     {
     for (;;)
       {
-      int c = (current_state.key != ERR) ? current_state.key : wgetch(current_state.win_body);
+      int c = ERR;
+      switch (current_state.activity)
+        {
+        case activity_type::editbox:
+          c = (current_state.key != ERR) ? current_state.key : wgetch(current_state.win_inputline);
+          break;
+        default:
+          c = (current_state.key != ERR) ? current_state.key : wgetch(current_state.win_body);
+          break;
+        }
       if (c != ERR)
         {
         current_state.key = ERR;
@@ -306,37 +442,59 @@ namespace jtui
           {
           case KEY_UP:
           {
-          if (current_state.active_menu == active_menu_type::submenu)
+          if (current_state.activity == activity_type::submenu)
             {
-            current_state.current_sub_menu = (current_state.current_sub_menu + (int)current_state.sub_menu.size() - 1) % (int)current_state.sub_menu.size();
+            current_state.current_sub_menu = (current_state.current_sub_menu + (int)current_state.sub_menu.size() - 1) % (int)current_state.sub_menu.size();          
             if (current_state.sub_menu.size() == 1)
               current_state.old_sub_menu = -1;
+            return current_state;
+            }
+          if (current_state.activity == activity_type::editbox)
+            {
+            current_state.editbox_active_line = (current_state.editbox_active_line + (int)current_state.editbox_field_values.size() - 1) % (int)current_state.editbox_field_values.size();
+            if (current_state.editbox_cursor_pos > (int)current_state.editbox_field_values[current_state.editbox_active_line].size())
+              current_state.editbox_cursor_pos = (int)current_state.editbox_field_values[current_state.editbox_active_line].size();
+            int begy, begx;
+            getbegyx(current_state.win_editbox, begy, begx);
+            mvwin(current_state.win_inputline, begy + current_state.editbox_active_line + 1, begx + current_state.editbox_field_width + 3);
             return current_state;
             }
           break;
           }
           case KEY_DOWN:
           {
-          if (current_state.active_menu == active_menu_type::submenu)
+          if (current_state.activity == activity_type::submenu)
             {
             current_state.current_sub_menu = (current_state.current_sub_menu + 1) % (int)current_state.sub_menu.size();
             if (current_state.sub_menu.size() == 1)
               current_state.old_sub_menu = -1;
             return current_state;
             }
-          if (current_state.active_menu == active_menu_type::main && current_state.current_main_menu >= 0)
+          if (current_state.activity == activity_type::main && current_state.current_main_menu >= 0)
             {
             return enter_submenu(current_state);
+            }
+          if (current_state.activity == activity_type::editbox)
+            {
+            return next_editbox(current_state);
+            }
+          break;
+          }
+          case '\t':
+          {
+          if (current_state.activity == activity_type::editbox)
+            {
+            return next_editbox(current_state);
             }
           break;
           }
           case '\n':
           {
-          if (current_state.active_menu == active_menu_type::main && current_state.current_main_menu >= 0)
+          if (current_state.activity == activity_type::main && current_state.current_main_menu >= 0)
             {
             return enter_submenu(current_state);
             }
-          if (current_state.active_menu == active_menu_type::submenu)
+          if (current_state.activity == activity_type::submenu)
             {
             touchwin(current_state.win_body);
             wrefresh(current_state.win_body);
@@ -347,48 +505,66 @@ namespace jtui
             curs_set(0);
             return new_state;
             }
+          if (current_state.activity == activity_type::editbox)
+            {
+            return next_editbox(current_state);
+            }
           break;
           }
           case KEY_LEFT:
           {
-          if (current_state.active_menu == active_menu_type::main && current_state.current_main_menu >= 0)
+          if (current_state.activity == activity_type::main && current_state.current_main_menu >= 0)
             {
             current_state.current_main_menu = (current_state.current_main_menu + (int)current_state.main_menu.size() - 1) % (int)current_state.main_menu.size();
             return current_state;
             }
-          if (current_state.active_menu == active_menu_type::submenu)
+          if (current_state.activity == activity_type::submenu)
             {
             rmline(current_state.win_status, 0);
             delwin(current_state.win_menu);
             current_state.win_menu = nullptr;
             touchwin(current_state.win_body);
             wrefresh(current_state.win_body);
-            current_state.active_menu = active_menu_type::main;
+            current_state.activity = activity_type::main;
             current_state.old_main_menu = -1;
             current_state.current_main_menu = (current_state.current_main_menu + (int)current_state.main_menu.size() - 1) % (int)current_state.main_menu.size();
             current_state.key = '\n';
+            return current_state;
+            }
+          if (current_state.activity == activity_type::editbox)
+            {
+            --current_state.editbox_cursor_pos;
+            if (current_state.editbox_cursor_pos < 0)
+              current_state.editbox_cursor_pos = 0;
             return current_state;
             }
           break;
           }
           case KEY_RIGHT:
           {
-          if (current_state.active_menu == active_menu_type::main && current_state.current_main_menu >= 0)
+          if (current_state.activity == activity_type::main && current_state.current_main_menu >= 0)
             {
             current_state.current_main_menu = (current_state.current_main_menu + 1) % (int)current_state.main_menu.size();
             return current_state;
             }
-          if (current_state.active_menu == active_menu_type::submenu)
+          if (current_state.activity == activity_type::submenu)
             {
             rmline(current_state.win_status, 0);
             delwin(current_state.win_menu);
             current_state.win_menu = nullptr;
             touchwin(current_state.win_body);
             wrefresh(current_state.win_body);
-            current_state.active_menu = active_menu_type::main;
+            current_state.activity = activity_type::main;
             current_state.old_main_menu = -1;
             current_state.current_main_menu = (current_state.current_main_menu + 1) % (int)current_state.main_menu.size();
             current_state.key = '\n';
+            return current_state;
+            }
+          if (current_state.activity == activity_type::editbox)
+            {
+            ++current_state.editbox_cursor_pos;
+            if (current_state.editbox_cursor_pos > (int)current_state.editbox_field_values[current_state.editbox_active_line].size())
+              current_state.editbox_cursor_pos = (int)current_state.editbox_field_values[current_state.editbox_active_line].size();
             return current_state;
             }
           break;
@@ -396,37 +572,115 @@ namespace jtui
           case KEY_ALT_L:
           case KEY_ALT_R:
           {
-          if (current_state.active_menu != active_menu_type::submenu && current_state.current_main_menu < 0)
+          if (current_state.activity == activity_type::none)
             {
             current_state.current_main_menu = 0;
             current_state.old_main_menu = -1;
-            current_state.active_menu = active_menu_type::main;
+            current_state.activity = activity_type::main;
             return current_state;
             }
           break;
           }
           case KEY_ESC:
           {
-          if (current_state.active_menu == active_menu_type::submenu)
+          if (current_state.activity == activity_type::submenu)
             {
             rmline(current_state.win_status, 0);
             delwin(current_state.win_menu);
             current_state.win_menu = nullptr;
             touchwin(current_state.win_body);
             wrefresh(current_state.win_body);
-            current_state.active_menu = active_menu_type::main;
+            current_state.activity = activity_type::main;
             current_state.old_main_menu = -1;
             return current_state;
             }
-          else if (current_state.active_menu == active_menu_type::main && current_state.current_main_menu >= 0)
+          if (current_state.activity == activity_type::editbox)
+            {
+            return cancel_editbox(current_state);
+            }
+          if (current_state.activity == activity_type::main)
             {
             current_state.current_main_menu = -1;
-            current_state.active_menu = active_menu_type::none;
+            current_state.activity = activity_type::none;
+            return current_state;
+            }
+          break;
+          }
+          case KEY_IC:
+          case KEY_EIC:
+          {
+          if (current_state.activity == activity_type::editbox)
+            {
+            current_state.editbox_insert_mode = !current_state.editbox_insert_mode;
+            return current_state;
+            }
+          break;
+          }
+          case KEY_DC: // delete
+          {
+          if (current_state.activity == activity_type::editbox)
+            {
+            if (current_state.editbox_cursor_pos < (int)current_state.editbox_field_values[current_state.editbox_active_line].size())
+              {
+              current_state.editbox_field_values[current_state.editbox_active_line].erase(current_state.editbox_cursor_pos, 1);
+              }
+            return current_state;
+            }
+          break;
+          }
+          case KEY_HOME:
+          {
+          if (current_state.activity == activity_type::editbox)
+            {
+            current_state.editbox_cursor_pos = 0;              
+            return current_state;
+            }
+          break;
+          }
+          case KEY_END:
+          {
+          if (current_state.activity == activity_type::editbox)
+            {
+            current_state.editbox_cursor_pos = (int)current_state.editbox_field_values[current_state.editbox_active_line].size();
             return current_state;
             }
           break;
           }
           default:
+            if (current_state.activity == activity_type::editbox)
+              {
+              if (c == erasechar())
+                {
+                if (current_state.editbox_cursor_pos > 0)
+                  {
+                  --current_state.editbox_cursor_pos;
+                  current_state.editbox_field_values[current_state.editbox_active_line].erase(current_state.editbox_cursor_pos, 1);
+                  }
+                return current_state;
+                }
+              else if (is_printable(c))
+                {
+                if (current_state.editbox_insert_mode)
+                  {
+                  if (current_state.editbox_cursor_pos < (int)current_state.editbox_field_values[current_state.editbox_active_line].size())
+                    current_state.editbox_field_values[current_state.editbox_active_line][current_state.editbox_cursor_pos] = (char)c;
+                  else
+                    current_state.editbox_field_values[current_state.editbox_active_line].push_back((char)c);
+                  ++current_state.editbox_cursor_pos;
+                  }
+                else
+                  {
+                  if (current_state.editbox_cursor_pos < (int)current_state.editbox_field_values[current_state.editbox_active_line].size())
+                    current_state.editbox_field_values[current_state.editbox_active_line].insert(current_state.editbox_cursor_pos, 1, (char)c);
+                  else
+                    current_state.editbox_field_values[current_state.editbox_active_line].push_back((char)c);
+                  ++current_state.editbox_cursor_pos;
+                  }
+                if (current_state.editbox_cursor_pos > (int)current_state.editbox_field_values[current_state.editbox_active_line].size())
+                  current_state.editbox_cursor_pos = (int)current_state.editbox_field_values[current_state.editbox_active_line].size();
+                return current_state;
+                }
+              }
             break;
           }
         }
@@ -454,6 +708,8 @@ namespace jtui
     colorbox(current_state.win_main, MAINMENUCOLOR, 0);
     colorbox(current_state.win_body, BODYCOLOR, 0);
     colorbox(current_state.win_status, STATUSCOLOR, 0);
+
+    PDC_set_title(title.c_str());
 
     title_message(current_state, pad_string(title, body_width - 3));
 

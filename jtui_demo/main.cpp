@@ -2,11 +2,6 @@
 #include "jtui/jtui.h"
 #include <vector>
 
-std::optional<jtui::state> quit(jtui::state st)
-  {
-  return jtui::do_exit();
-  }
-
 std::optional<jtui::state> message1(jtui::state st)
   {
   return jtui::body_message(st, "Hello world!");
@@ -25,10 +20,23 @@ std::optional<jtui::state> subsub(jtui::state st)
   return do_submenu(st, v);
   }
 
+std::optional<jtui::state> command(jtui::state st)
+  {
+  std::vector<std::string> field_names;
+  field_names.push_back("Name");
+  field_names.push_back("Age");
+  field_names.push_back("Address");
+  std::vector<std::string> field_values;
+  field_values.push_back("Jan");
+  field_values.push_back("42");
+  return do_editbox(st, field_names, field_values, 50);
+  }
+
 std::optional<jtui::state> file_menu(jtui::state st)
   {
   std::vector<jtui::menu> v;
-  v.push_back({ std::string("Exit"), std::string("Quit the application"), &quit });
+  v.push_back({ std::string("Command"), std::string("Enter a command"), &command});
+  v.push_back({ std::string("Exit"), std::string("Quit the application"), &jtui::do_exit });
   return do_submenu(st, v);
   }
 

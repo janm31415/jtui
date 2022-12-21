@@ -23,11 +23,12 @@ namespace jtui
     action fun;
     };
 
-  enum class active_menu_type
+  enum class activity_type
     {
     none,
     main,
-    submenu
+    submenu,
+    editbox
     };
 
   struct state
@@ -37,6 +38,8 @@ namespace jtui
     WINDOW* win_body = nullptr;
     WINDOW* win_status = nullptr;
     WINDOW* win_menu = nullptr;
+    WINDOW* win_editbox = nullptr;
+    WINDOW* win_inputline = nullptr;
     bool quit = false;
     int key = ERR;
     int menu_y = -1;
@@ -49,7 +52,12 @@ namespace jtui
     int current_sub_menu = -1;
     int main_menu_item_width = -1;
     int sub_menu_item_width = -1;
-    active_menu_type active_menu = active_menu_type::none;
+    int editbox_field_width = -1;
+    int editbox_active_line = -1;
+    int editbox_cursor_pos = -1;
+    bool editbox_insert_mode = false;
+    std::vector<std::string> editbox_field_values;
+    activity_type activity = activity_type::none;
     };
 
   void run(const std::vector<menu>& main_menu, const std::string& title);
@@ -58,5 +66,7 @@ namespace jtui
 
   std::optional<state> do_submenu(state current_state, const std::vector<menu>& sub_menu);
 
-  std::optional<state> do_exit();
+  std::optional<state> do_exit(state current_state);
+
+  std::optional<state> do_editbox(state current_state, const std::vector<std::string>& field_names, const std::vector<std::string>& field_values, int edit_length);
   }
