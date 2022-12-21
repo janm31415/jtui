@@ -1,8 +1,12 @@
 #include "jtui.h"
 #include <time.h>
+#include <thread>
 
 #ifdef PDCURSES_WITH_SDL
+extern "C" {
 #include "PDCurses/sdl2/pdcsdl.h"
+  }
+#undef main
 #endif
 
 
@@ -109,14 +113,14 @@ namespace jtui
       box(win, 0, 0);
 
     touchwin(win);
-    wrefresh(win);
+    wnoutrefresh(win);
     }
 
   void remove_line(WINDOW* win, int nr)
     {
     std::string text = pad_string(" ", body_width - 2);
     mvwaddstr(win, nr, 1, text.c_str());
-    wrefresh(win);
+    wnoutrefresh(win);
     }
 
   void remove_error_message(const state& current_state)
@@ -196,6 +200,7 @@ namespace jtui
 
     mvwaddstr(current_state.win_title, 0, body_width - (int)strlen(buf) - 2, buf);
     wrefresh(current_state.win_title);
+    std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(5.0));
     return current_state;
     }
 
@@ -234,7 +239,7 @@ namespace jtui
       mvwaddstr(current_state.win_main, 0, current_state.current_main_menu * current_state.main_menu_item_width, text.c_str());
       setcolor(current_state.win_main, MAINMENUCOLOR);
       current_state.old_main_menu = current_state.current_main_menu;
-      wrefresh(current_state.win_main);
+      wnoutrefresh(current_state.win_main);
       }
     return current_state;
     }
@@ -275,7 +280,7 @@ namespace jtui
       setcolor(current_state.win_menu, SUBMENUCOLOR);
       current_state = *status_message(current_state, current_state.sub_menu[current_state.current_sub_menu].description);
       current_state.old_sub_menu = current_state.current_sub_menu;
-      wrefresh(current_state.win_menu);
+      wnoutrefresh(current_state.win_menu);
       }
 
     return current_state;
@@ -317,7 +322,7 @@ namespace jtui
       mvwprintw(current_state.win_inputline, 0, 0, "%s", text.c_str());
       wmove(current_state.win_inputline, 0, current_state.editbox_cursor_pos);
       }
-    wrefresh(current_state.win_inputline);
+    wnoutrefresh(current_state.win_inputline);
     return current_state;
     }
 
@@ -358,7 +363,7 @@ namespace jtui
       delwin(current_state.win_menu);
       current_state.win_menu = nullptr;
       touchwin(current_state.win_body);
-      wrefresh(current_state.win_body);
+      wnoutrefresh(current_state.win_body);
       ++current_state.menu_x; // this is a sub sub menu
       ++current_state.menu_y;
       }
@@ -370,7 +375,7 @@ namespace jtui
   std::optional<state> enter_submenu(state current_state)
     {
     touchwin(current_state.win_body);
-    wrefresh(current_state.win_body);
+    wnoutrefresh(current_state.win_body);
     remove_error_message(current_state);
     current_state.menu_x = current_state.current_main_menu * current_state.main_menu_item_width;
     current_state.menu_y = title_height + main_menu_height;
@@ -393,7 +398,7 @@ namespace jtui
       delwin(current_state.win_menu);
       current_state.win_menu = nullptr;
       touchwin(current_state.win_body);
-      wrefresh(current_state.win_body);
+      wnoutrefresh(current_state.win_body);
       }
 
     int field_width = 0;
@@ -421,6 +426,7 @@ namespace jtui
     int cury, curx;
     getyx(current_state.win_editbox, cury, curx);
     current_state.win_inputline = subwin(current_state.win_editbox, 1, edit_length, begy + 1, begx + 3 + field_width);
+    nodelay(current_state.win_inputline, true);
     current_state.editbox_active_line = 0;
     colorbox(current_state.win_inputline, EDITBOXCOLOR, 0);
     keypad(current_state.win_inputline, true);
@@ -489,13 +495,13 @@ namespace jtui
 
   bool is_printable(int c)
     {
-    return std::isprint(c) == 0 ? false : true;    
+    return std::isprint(c) == 0 ? false : true;
     }
 
   std::optional<state> execute_submenu_item(state current_state)
     {
     touchwin(current_state.win_body);
-    wrefresh(current_state.win_body);
+    wnoutrefresh(current_state.win_body);
     remove_error_message(current_state);
     current_state.old_sub_menu = -1;
     curs_set(1);
@@ -665,7 +671,7 @@ namespace jtui
             delwin(current_state.win_menu);
             current_state.win_menu = nullptr;
             touchwin(current_state.win_body);
-            wrefresh(current_state.win_body);
+            wnoutrefresh(current_state.win_body);
             current_state.activity = activity_type::main;
             current_state.old_main_menu = -1;
             return current_state;
@@ -821,7 +827,9 @@ namespace jtui
     PDC_return_key_modifiers(true);
     curs_set(0);
     nodelay(current_state.win_body, true);
-    halfdelay(1);
+    nodelay(current_state.win_main, true);
+    nodelay(current_state.win_title, true);
+    nodelay(current_state.win_status, true);
     keypad(current_state.win_body, true);
     scrollok(current_state.win_body, true);
 
