@@ -20,16 +20,37 @@ std::optional<jtui::state> subsub(jtui::state st)
   return do_submenu(st, v);
   }
 
+std::optional<jtui::state> on_address_ok(jtui::state st)
+  {
+  std::vector<std::string> field_names;
+  field_names.push_back("Name");
+  field_names.push_back("Street");
+  field_names.push_back("City");
+  field_names.push_back("Country");
+  for (int i = 0; i < (int)field_names.size(); ++i)
+    {
+    std::string line = field_names[i] + std::string(": ") + st.editbox_field_values[i] + std::string("\n");
+    st = *jtui::body_message(st, line);
+    }
+  return st;
+  }
+
+std::optional<jtui::state> on_address_cancel(jtui::state st)
+  {
+  return jtui::body_message(st, "Address was cancelled\n");
+  }
+
 std::optional<jtui::state> command(jtui::state st)
   {
   std::vector<std::string> field_names;
   field_names.push_back("Name");
-  field_names.push_back("Age");
-  field_names.push_back("Address");
+  field_names.push_back("Street");
+  field_names.push_back("City");
+  field_names.push_back("Country");
   std::vector<std::string> field_values;
-  field_values.push_back("Jan");
-  field_values.push_back("42");
-  return do_editbox(st, field_names, field_values, 50);
+  field_values.push_back("John Doe");
+  field_values.push_back("some street");
+  return do_editbox(st, field_names, field_values, 50, &on_address_ok, &on_address_cancel);
   }
 
 std::optional<jtui::state> file_menu(jtui::state st)

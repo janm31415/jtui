@@ -259,10 +259,29 @@ namespace jtui
 
     wrefresh(current_state.win_editbox);
     werase(current_state.win_inputline);
-    std::string text = pad_string(current_state.editbox_field_values[current_state.editbox_active_line], maxx);
-    mvwprintw(current_state.win_inputline, 0, 0, "%s", text.c_str());
     curs_set(current_state.editbox_insert_mode ? 2 : 1);
-    wmove(current_state.win_inputline, 0, current_state.editbox_cursor_pos);
+    std::string text = current_state.editbox_field_values[current_state.editbox_active_line];
+    if (text.length() > maxx - 2)
+      {
+      int view_width = maxx - 4;
+      if (view_width < 4)
+        view_width = maxx;
+      int pos = current_state.editbox_cursor_pos;
+      int page = (pos - 2) / view_width;
+      if (page < 0)
+        page = 0;
+      text = text.substr(page * view_width);
+      pos -= page * view_width;
+      text = pad_string(text, maxx);
+      mvwprintw(current_state.win_inputline, 0, 0, "%s", text.c_str());
+      wmove(current_state.win_inputline, 0, pos);
+      }
+    else
+      {
+      text = pad_string(text, maxx);
+      mvwprintw(current_state.win_inputline, 0, 0, "%s", text.c_str());
+      wmove(current_state.win_inputline, 0, current_state.editbox_cursor_pos);
+      }
     wrefresh(current_state.win_inputline);
     return current_state;
     }
@@ -322,7 +341,12 @@ namespace jtui
     return new_state;
     }
 
-  std::optional<state> do_editbox(state current_state, const std::vector<std::string>& field_names, const std::vector<std::string>& field_values, int edit_length)
+  std::optional<state> do_editbox(state current_state,
+    const std::vector<std::string>& field_names,
+    const std::vector<std::string>& field_values,
+    int edit_length,
+    action on_editbox_ok,
+    action on_editbox_cancel)
     {
     if (current_state.win_menu != nullptr)
       {
@@ -343,7 +367,7 @@ namespace jtui
     int ncols = field_width + edit_length + 4;
 
     int maxy, maxx, posy, posx;
-    getyx(current_state.win_body, posy, posx);
+    getbegyx(current_state.win_body, posy, posx);
     getmaxyx(current_state.win_body, maxy, maxx);
 
     int begy = ((maxy - posy) - nlines) / 2 + posy;
@@ -370,6 +394,8 @@ namespace jtui
     while (current_state.editbox_field_values.size() < field_names.size())
       current_state.editbox_field_values.emplace_back();
     current_state.activity = activity_type::editbox;
+    current_state.on_editbox_cancel = on_editbox_cancel;
+    current_state.on_editbox_ok = on_editbox_ok;
     return current_state;
     }
 
@@ -385,7 +411,10 @@ namespace jtui
     wrefresh(current_state.win_body);
     current_state.activity = activity_type::main;
     current_state.old_main_menu = -1;
-    return current_state;
+    action done_action = current_state.on_editbox_ok;
+    current_state.on_editbox_ok = nullptr;
+    current_state.on_editbox_cancel = nullptr;
+    return (*done_action)(current_state);
     }
 
   std::optional<state> cancel_editbox(state current_state)
@@ -400,7 +429,10 @@ namespace jtui
     wrefresh(current_state.win_body);
     current_state.activity = activity_type::main;
     current_state.old_main_menu = -1;
-    return current_state;
+    action cancel_action = current_state.on_editbox_cancel;
+    current_state.on_editbox_ok = nullptr;
+    current_state.on_editbox_cancel = nullptr;
+    return (*cancel_action)(current_state);
     }
 
   std::optional<state> next_editbox(state current_state)
@@ -444,7 +476,7 @@ namespace jtui
           {
           if (current_state.activity == activity_type::submenu)
             {
-            current_state.current_sub_menu = (current_state.current_sub_menu + (int)current_state.sub_menu.size() - 1) % (int)current_state.sub_menu.size();          
+            current_state.current_sub_menu = (current_state.current_sub_menu + (int)current_state.sub_menu.size() - 1) % (int)current_state.sub_menu.size();
             if (current_state.sub_menu.size() == 1)
               current_state.old_sub_menu = -1;
             return current_state;
@@ -632,7 +664,7 @@ namespace jtui
           {
           if (current_state.activity == activity_type::editbox)
             {
-            current_state.editbox_cursor_pos = 0;              
+            current_state.editbox_cursor_pos = 0;
             return current_state;
             }
           break;

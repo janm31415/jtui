@@ -58,6 +58,8 @@ namespace jtui
     bool editbox_insert_mode = false;
     std::vector<std::string> editbox_field_values;
     activity_type activity = activity_type::none;
+    action on_editbox_ok = nullptr;
+    action on_editbox_cancel = nullptr;
     };
 
   void run(const std::vector<menu>& main_menu, const std::string& title);
@@ -68,5 +70,10 @@ namespace jtui
 
   std::optional<state> do_exit(state current_state);
 
-  std::optional<state> do_editbox(state current_state, const std::vector<std::string>& field_names, const std::vector<std::string>& field_values, int edit_length);
+  std::optional<state> do_editbox(state current_state, 
+    const std::vector<std::string>& field_names, 
+    const std::vector<std::string>& field_values, 
+    int edit_length, 
+    action on_editbox_ok, 
+    action on_editbox_cancel);
   }
