@@ -87,6 +87,8 @@ namespace jtui
 
   std::optional<state> title_message(state current_state, const std::string& msg);
 
+  std::optional<state> close_submenu(state current_state);
+
   std::optional<state> do_submenu(state current_state, const std::vector<menu>& sub_menu);
 
   std::optional<state> do_exit(state current_state);

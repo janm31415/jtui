@@ -444,6 +444,21 @@ namespace jtui
     return std::optional<state>();
     }
 
+  std::optional<state> close_submenu(state current_state)
+    {
+    if (current_state.win_menu != nullptr)
+      {
+      remove_error_message(current_state);
+      delwin(current_state.win_menu);
+      current_state.win_menu = nullptr;
+      touchwin(current_state.win_body);
+      wnoutrefresh(current_state.win_body);
+      current_state.old_main_menu = -1;
+      current_state.activity = activity_type::main;
+      }
+    return current_state;
+    }
+
   std::optional<state> do_submenu(state current_state, const std::vector<menu>& sub_menu)
     {
     current_state.sub_menu = sub_menu;
@@ -584,9 +599,22 @@ namespace jtui
     return current_state;
     }
 
-  bool is_printable(int c)
+  int is_printable(int c)
     {
-    return std::isprint(c) == 0 ? false : true;
+    if (c >= -1 && c <= 255)
+      {
+      return std::isprint(c) == 0 ? -1 : c;
+      }
+    switch (c)
+      {
+      case PADPLUS: return (int)'+';
+      case PADMINUS: return (int)'-';
+      case PADSTAR: return (int)'*';
+      case PADSLASH: return (int)'/';      
+      default:
+        break;
+      }
+    return -1;
     }
 
   std::optional<state> execute_submenu_item(state current_state)
@@ -668,6 +696,7 @@ namespace jtui
             }
           break;
           }
+          case PADENTER:
           case '\n':
           {
           if (current_state.activity == activity_type::main && current_state.current_main_menu >= 0)
@@ -827,6 +856,7 @@ namespace jtui
           default:
             if (current_state.activity == activity_type::editbox)
               {
+              int printable_char = is_printable(c);
               if (c == erasechar())
                 {
                 if (current_state.editbox_cursor_pos > 0)
@@ -836,22 +866,22 @@ namespace jtui
                   }
                 return current_state;
                 }
-              else if (is_printable(c))
+              else if (printable_char >=0)
                 {
                 if (current_state.editbox_insert_mode)
                   {
                   if (current_state.editbox_cursor_pos < (int)current_state.editbox_field_values[current_state.editbox_active_line].size())
-                    current_state.editbox_field_values[current_state.editbox_active_line][current_state.editbox_cursor_pos] = (char)c;
+                    current_state.editbox_field_values[current_state.editbox_active_line][current_state.editbox_cursor_pos] = (char)printable_char;
                   else
-                    current_state.editbox_field_values[current_state.editbox_active_line].push_back((char)c);
+                    current_state.editbox_field_values[current_state.editbox_active_line].push_back((char)printable_char);
                   ++current_state.editbox_cursor_pos;
                   }
                 else
                   {
                   if (current_state.editbox_cursor_pos < (int)current_state.editbox_field_values[current_state.editbox_active_line].size())
-                    current_state.editbox_field_values[current_state.editbox_active_line].insert(current_state.editbox_cursor_pos, 1, (char)c);
+                    current_state.editbox_field_values[current_state.editbox_active_line].insert(current_state.editbox_cursor_pos, 1, (char)printable_char);
                   else
-                    current_state.editbox_field_values[current_state.editbox_active_line].push_back((char)c);
+                    current_state.editbox_field_values[current_state.editbox_active_line].push_back((char)printable_char);
                   ++current_state.editbox_cursor_pos;
                   }
                 if (current_state.editbox_cursor_pos > (int)current_state.editbox_field_values[current_state.editbox_active_line].size())
@@ -885,16 +915,30 @@ namespace jtui
                   return execute_submenu_item(current_state);
                   }
                 }
+              for (int i = 0; i < (int)current_state.main_menu.size(); ++i)
+                {
+                if (hotkey(current_state.main_menu[i].name) == std::toupper(c))
+                  {
+                  remove_error_message(current_state);
+                  delwin(current_state.win_menu);
+                  current_state.win_menu = nullptr;
+                  current_state.activity = activity_type::main;
+                  current_state.current_main_menu = i;
+                  current_state.old_main_menu = -1;
+                  current_state = draw(current_state);
+                  return enter_submenu(current_state);
+                  }
+                }
               }
             break;
+            }
           }
-        }
       else
         {
         current_state = *current_state.on_idle(current_state);
         }
-      }
-    }
+          }
+        }
 
   void run(const std::vector<menu>& main_menu, const std::string& title, settings s)
     {
@@ -950,4 +994,4 @@ namespace jtui
 
 
 
-  } // namespace jtui
+      } // namespace jtui
