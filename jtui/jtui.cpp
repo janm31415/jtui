@@ -307,7 +307,11 @@ namespace jtui
 
     if (current_state.current_main_menu < 0)
       {
+#ifdef PDCURSES_WITH_X11
+      current_state = *status_message(current_state, "Use CTRL to enter the menu.");
+#else
       current_state = *status_message(current_state, "Use ALT to enter the menu.");
+#endif
       }
     else if (current_state.current_main_menu >= 0 && current_state.current_main_menu != current_state.old_main_menu)
       {
@@ -738,8 +742,13 @@ namespace jtui
             }
           break;
           }
+#ifdef PDCURSES_WITH_X11
+          case KEY_CONTROL_L:
+          case KEY_CONTROL_R:
+#else
           case KEY_ALT_L:
           case KEY_ALT_R:
+#endif
           {
           if (current_state.activity == activity_type::none)
             {

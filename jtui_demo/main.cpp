@@ -87,7 +87,9 @@ int main(int argc, char** argv)
   ::setlocale(LC_ALL, "");
   #endif
 
+  jtui::settings s;
+  s.colors = jtui::get_darkblue_color_scheme();
   std::vector<jtui::menu> main_menu = build_menu();
-  jtui::run(main_menu, std::string("jtui demo"));
+  jtui::run(main_menu, std::string("jtui demo"), s);
   return 0;
   }
