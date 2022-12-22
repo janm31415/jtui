@@ -1,6 +1,7 @@
 #include "jtui.h"
 #include <time.h>
 #include <thread>
+#include <cstring>
 
 #ifdef PDCURSES_WITH_SDL
 extern "C" {
