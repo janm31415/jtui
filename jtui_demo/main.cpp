@@ -86,6 +86,7 @@ int main(int argc, char** argv)
   std::locale::global(std::locale(""));
   ::setlocale(LC_ALL, "");
   #endif
+
   std::vector<jtui::menu> main_menu = build_menu();
   jtui::run(main_menu, std::string("jtui demo"));
   return 0;

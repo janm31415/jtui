@@ -66,22 +66,110 @@ namespace jtui
     return -1;
     }
 
-  void initcolor()
+
+  struct rgb
+    {
+    rgb(uint32_t v) : r(v & 255), g((v >> 8) & 255), b((v >> 16) & 255)
+      {
+      }
+
+    rgb(int red, int green, int blue) : r(red), g(green), b(blue) {}
+    int r, g, b;
+    };
+
+  short conv_rgb(int clr)
+    {
+    float frac = (float)clr / 255.f;
+    return (short)(1000.f * frac);
+    }
+
+  void init_jtui_color(short id, rgb value)
+    {
+    init_color(id, conv_rgb(value.r), conv_rgb(value.g), conv_rgb(value.b));
+    }
+
+  color_scheme get_default_color_scheme()
+    {
+    color_scheme colors;
+    colors.menu_background = 0xffc0c000;
+    colors.title_color = 0xff000000;
+    colors.body_background = 0xffc00000;
+    colors.text_color = 0xffc0c0c0;
+    colors.text_color_bold = 0xffffffff;
+    return colors;
+    }
+
+  color_scheme get_blue_color_scheme()
+    {
+    color_scheme colors;
+    colors.menu_background = 0xffdd963a;
+    colors.title_color = 0xff000000;
+    colors.body_background = 0xffda3700;
+    colors.text_color = 0xffc0c0c0;
+    colors.text_color_bold = 0xffffffff;
+    return colors;
+    }
+
+  color_scheme get_dark_color_scheme()
+    {
+    color_scheme colors;
+    colors.menu_background = 0xff111111;
+    colors.title_color = 0xff70635c;
+    colors.body_background = 0xff21201d;
+    colors.text_color = 0xffc0c0c0;
+    colors.text_color_bold = 0xffc0c0c0;
+    return colors;
+    }
+
+  color_scheme get_darkblue_color_scheme()
+    {
+    color_scheme colors;
+    colors.menu_background = 0xff2a1714;
+    colors.title_color = 0xffa47262;
+    colors.body_background = 0xff362a28;
+    colors.text_color = 0xffc0c0c0;//0xfff993bd;
+    colors.text_color_bold = 0xffffffff;
+    return colors;
+    }
+
+  color_scheme get_acme_color_scheme()
+    {
+    color_scheme colors;
+    colors.menu_background = 0xffffffe5;
+    colors.title_color = 0xffff8080;
+    colors.body_background = 0xffe5ffff;
+    colors.text_color = 0xff000000;
+    colors.text_color_bold = 0xff000000;
+    return colors;
+    }
+
+#define MENU_BACKGROUND 16
+#define TITLE_COLOR 17
+#define BODY_BACKGROUND 18
+#define TEXT_COLOR 19
+
+  void initcolor(color_scheme colors)
     {
     if (has_colors())
       start_color();
 
+    init_jtui_color(MENU_BACKGROUND, rgb(colors.menu_background)); // cyan
+    init_jtui_color(TITLE_COLOR, rgb(colors.title_color)); // black
+    init_jtui_color(BODY_BACKGROUND, rgb(colors.body_background)); // blue
+    init_jtui_color(TEXT_COLOR, rgb(colors.text_color)); // white
+    init_jtui_color(TEXT_COLOR | 8, rgb(colors.text_color_bold));
+
     /* foreground, background */
 
-    init_pair(TITLECOLOR & ~A_ATTR, COLOR_BLACK, COLOR_CYAN);
-    init_pair(MAINMENUCOLOR & ~A_ATTR, COLOR_WHITE, COLOR_CYAN);
-    init_pair(MAINMENUREVCOLOR & ~A_ATTR, COLOR_WHITE, COLOR_BLACK);
-    init_pair(SUBMENUCOLOR & ~A_ATTR, COLOR_WHITE, COLOR_CYAN);
-    init_pair(SUBMENUREVCOLOR & ~A_ATTR, COLOR_WHITE, COLOR_BLACK);
-    init_pair(BODYCOLOR & ~A_ATTR, COLOR_WHITE, COLOR_BLUE);
-    init_pair(STATUSCOLOR & ~A_ATTR, COLOR_WHITE, COLOR_CYAN);
-    init_pair(INPUTBOXCOLOR & ~A_ATTR, COLOR_BLACK, COLOR_CYAN);
-    init_pair(EDITBOXCOLOR & ~A_ATTR, COLOR_WHITE, COLOR_BLACK);
+    init_pair(TITLECOLOR & ~A_ATTR, TITLE_COLOR, MENU_BACKGROUND);
+    init_pair(MAINMENUCOLOR & ~A_ATTR, TEXT_COLOR, MENU_BACKGROUND);
+    init_pair(MAINMENUREVCOLOR & ~A_ATTR, TEXT_COLOR, TITLE_COLOR);
+    init_pair(SUBMENUCOLOR & ~A_ATTR, TEXT_COLOR, MENU_BACKGROUND);
+    init_pair(SUBMENUREVCOLOR & ~A_ATTR, TEXT_COLOR, TITLE_COLOR);
+    init_pair(BODYCOLOR & ~A_ATTR, TEXT_COLOR, BODY_BACKGROUND);
+    init_pair(STATUSCOLOR & ~A_ATTR, TEXT_COLOR, MENU_BACKGROUND);
+    init_pair(INPUTBOXCOLOR & ~A_ATTR, TITLE_COLOR, MENU_BACKGROUND);
+    init_pair(EDITBOXCOLOR & ~A_ATTR, TEXT_COLOR, TITLE_COLOR);
     }
 
   void setcolor(WINDOW* win, chtype color)
@@ -184,7 +272,7 @@ namespace jtui
     endwin();
     }
 
-  state idle(state current_state)
+  std::optional<state> on_idle(state current_state)
     {
     char buf[256];
     time_t t;
@@ -328,24 +416,23 @@ namespace jtui
 
   state draw(state current_state)
     {
-    state new_state = idle(current_state);
-    switch (new_state.activity)
+    switch (current_state.activity)
       {
       case activity_type::submenu:
-        new_state = draw_submenu(new_state);
+        current_state = draw_submenu(current_state);
         break;
       case activity_type::editbox:
-        new_state = draw_editbox(new_state);
+        current_state = draw_editbox(current_state);
         break;
       default:
-        new_state = draw_main_menu(new_state);
+        current_state = draw_main_menu(current_state);
         break;
       }
     refresh();
 #ifdef PDCURSES_WITH_SDL
     SDL_UpdateWindowSurface(pdc_window);
 #endif
-    return new_state;
+    return current_state;
     }
 
   std::optional<state> do_exit(state /*current_state*/)
@@ -795,18 +882,21 @@ namespace jtui
         }
       else
         {
-        current_state = idle(current_state);
+        current_state = *current_state.on_idle(current_state);
         }
       }
     }
 
-  void run(const std::vector<menu>& main_menu, const std::string& title)
+  void run(const std::vector<menu>& main_menu, const std::string& title, settings s)
     {
     state current_state;
     current_state.main_menu = main_menu;
     current_state.main_menu_item_width = menu_width(current_state.main_menu);
+    current_state.user_data = s.user_data;
+    current_state.on_idle = s.idle_action;
+
     initscr();
-    initcolor();
+    initcolor(s.colors);
 
     current_state.win_title = subwin(stdscr, title_height, body_width, 0, 0);
     current_state.win_main = subwin(stdscr, main_menu_height, body_width, title_height, 0);

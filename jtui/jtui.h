@@ -60,10 +60,24 @@ namespace jtui
     activity_type activity = activity_type::none;
     action on_editbox_ok = nullptr;
     action on_editbox_cancel = nullptr;
+    action on_idle = nullptr;
     void* user_data = nullptr;
     };
 
-  void run(const std::vector<menu>& main_menu, const std::string& title);
+  struct color_scheme
+    {
+    uint32_t menu_background = 0xffc0c000;
+    uint32_t title_color = 0xff000000;
+    uint32_t body_background = 0xffc00000;
+    uint32_t text_color = 0xffc0c0c0;
+    uint32_t text_color_bold = 0xffffffff;
+    };
+
+  color_scheme get_default_color_scheme();
+  color_scheme get_blue_color_scheme();
+  color_scheme get_dark_color_scheme();
+  color_scheme get_darkblue_color_scheme();
+  color_scheme get_acme_color_scheme();
 
   std::optional<state> body_message(state current_state, const std::string& msg);
 
@@ -83,4 +97,16 @@ namespace jtui
     int edit_length, 
     action on_editbox_ok, 
     action on_editbox_cancel);
+
+  std::optional<state> on_idle(state current_state);
+
+  struct settings
+    {
+    color_scheme colors = get_default_color_scheme();
+    action idle_action = &on_idle;
+    void* user_data = nullptr;
+    };
+
+  void run(const std::vector<menu>& main_menu, const std::string& title, settings s = settings());
+
   }
