@@ -4,10 +4,7 @@
 #include <optional>
 #include <vector>
 
-extern "C"
-  {
-#include "curses.h"
-  }
+typedef struct _win WINDOW;
 
 namespace jtui
   {
@@ -29,7 +26,7 @@ namespace jtui
     main,
     submenu,
     editbox
-    };
+    };  
 
   struct state
     {
@@ -41,7 +38,7 @@ namespace jtui
     WINDOW* win_editbox = nullptr;
     WINDOW* win_inputline = nullptr;
     bool quit = false;
-    int key = ERR;
+    int key = -1;
     int menu_y = -1;
     int menu_x = -1;
     std::vector<menu> main_menu;

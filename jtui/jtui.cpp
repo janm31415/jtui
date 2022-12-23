@@ -1,4 +1,10 @@
 #include "jtui.h"
+
+extern "C"
+  {
+#include "curses.h"
+  }
+
 #include <time.h>
 #include <thread>
 #include <cstring>
