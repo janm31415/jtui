@@ -239,6 +239,11 @@ namespace jtui
     {
     waddstr(current_state.win_body, msg.c_str());
     wnoutrefresh(current_state.win_body);
+    if (current_state.win_menu)
+      {
+      wnoutrefresh(current_state.win_menu);
+      touchwin(current_state.win_menu);
+      }
     return current_state;
     }
 
@@ -295,6 +300,11 @@ namespace jtui
 
     mvwaddstr(current_state.win_title, 0, body_width - (int)strlen(buf) - 2, buf);
     wrefresh(current_state.win_title);
+    if (current_state.win_menu)
+      {
+      wnoutrefresh(current_state.win_menu);
+      touchwin(current_state.win_menu);
+      }
     std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(5.0));
     return current_state;
     }
@@ -617,7 +627,7 @@ namespace jtui
       case PADPLUS: return (int)'+';
       case PADMINUS: return (int)'-';
       case PADSTAR: return (int)'*';
-      case PADSLASH: return (int)'/';      
+      case PADSLASH: return (int)'/';
       default:
         break;
       }
@@ -873,7 +883,7 @@ namespace jtui
                   }
                 return current_state;
                 }
-              else if (printable_char >=0)
+              else if (printable_char >= 0)
                 {
                 if (current_state.editbox_insert_mode)
                   {
@@ -938,14 +948,14 @@ namespace jtui
                 }
               }
             break;
-            }
           }
+        }
       else
         {
         current_state = *current_state.on_idle(current_state);
         }
-          }
-        }
+      }
+    }
 
   void run(const std::vector<menu>& main_menu, const std::string& title, settings s)
     {
@@ -1001,4 +1011,4 @@ namespace jtui
 
 
 
-      } // namespace jtui
+  } // namespace jtui
