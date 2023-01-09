@@ -59,6 +59,7 @@ namespace jtui
     action on_editbox_cancel = nullptr;
     action on_idle = nullptr;
     void* user_data = nullptr;
+    std::string title;
     };
 
   struct color_scheme

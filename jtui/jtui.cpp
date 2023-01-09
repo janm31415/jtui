@@ -23,8 +23,8 @@ namespace jtui
 #define title_height 1
 #define main_menu_height 1
 #define status_window_height 2
-#define body_height (LINES - title_height - main_menu_height - status_window_height)
-#define body_width COLS
+#define body_height (SP->lines - title_height - main_menu_height - status_window_height)
+#define body_width SP->cols
 #define KEY_ESC    0x1b     /* Escape */
 
 #define TITLECOLOR       1   
@@ -43,7 +43,7 @@ namespace jtui
   std::string pad_string(const std::string& str, int length)
     {
     char buff[10];
-    char long_buffer[256];
+    char long_buffer[1024];
     if (str.length() > length)
       {
       snprintf(buff, sizeof(buff), "%%.%ds", length);
@@ -665,6 +665,49 @@ namespace jtui
         current_state.key = ERR;
         switch (c)
           {
+          case KEY_RESIZE:
+          {
+          delwin(current_state.win_menu);
+          delwin(current_state.win_editbox);
+          delwin(current_state.win_inputline);
+          delwin(current_state.win_title);
+          delwin(current_state.win_main);
+          delwin(current_state.win_body);
+          delwin(current_state.win_status);
+          current_state.win_menu = nullptr;
+          current_state.win_editbox = nullptr;
+          current_state.win_inputline = nullptr;
+          current_state.activity = activity_type::none;
+          current_state.current_main_menu = -1;
+          current_state.old_main_menu = -1;
+          resize_term(0, 0);
+
+          current_state.win_title = subwin(stdscr, title_height, body_width, 0, 0);
+          current_state.win_main = subwin(stdscr, main_menu_height, body_width, title_height, 0);
+          current_state.win_body = subwin(stdscr, body_height, body_width, title_height + main_menu_height, 0);
+          current_state.win_status = subwin(stdscr, status_window_height, body_width, title_height + main_menu_height + body_height, 0);
+
+          colorbox(current_state.win_title, TITLECOLOR, 0);
+          colorbox(current_state.win_main, MAINMENUCOLOR, 0);
+          colorbox(current_state.win_body, BODYCOLOR, 0);
+          colorbox(current_state.win_status, STATUSCOLOR, 0);
+          current_state = *title_message(current_state, pad_string(current_state.title, body_width - 3));
+
+          curs_set(0);
+          nodelay(current_state.win_body, true);
+          nodelay(current_state.win_main, true);
+          nodelay(current_state.win_title, true);
+          nodelay(current_state.win_status, true);
+          keypad(current_state.win_body, true);
+          scrollok(current_state.win_body, true);
+
+          leaveok(stdscr, true);
+          leaveok(current_state.win_title, true);
+          leaveok(current_state.win_main, true);
+          leaveok(current_state.win_status, true);
+
+          return current_state;
+          }
           case KEY_UP:
           {
           if (current_state.activity == activity_type::submenu)
@@ -964,7 +1007,7 @@ namespace jtui
     current_state.main_menu_item_width = menu_width(current_state.main_menu);
     current_state.user_data = s.user_data;
     current_state.on_idle = s.idle_action;
-
+    current_state.title = title;
     initscr();
     initcolor(s.colors);
 
