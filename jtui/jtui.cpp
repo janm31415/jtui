@@ -1000,6 +1000,12 @@ namespace jtui
       }
     }
 
+  void get_jtui_window_size(uint32_t& rows, uint32_t& cols)
+    {
+    rows = (uint32_t)SP->lines;
+    cols = (uint32_t)SP->cols;
+    }
+
   void run(const std::vector<menu>& main_menu, const std::string& title, settings s)
     {
     state current_state;

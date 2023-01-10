@@ -77,6 +77,8 @@ namespace jtui
   color_scheme get_darkblue_color_scheme();
   color_scheme get_acme_color_scheme();
 
+  void get_jtui_window_size(uint32_t& rows, uint32_t& cols);
+
   std::optional<state> body_message(state current_state, const std::string& msg);
 
   std::optional<state> status_message(state current_state, const std::string& msg);
