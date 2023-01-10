@@ -305,7 +305,8 @@ namespace jtui
       wnoutrefresh(current_state.win_menu);
       touchwin(current_state.win_menu);
       }
-    std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(5.0));
+    if (current_state.sleep_milliseconds)
+      std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(current_state.sleep_milliseconds));
     return current_state;
     }
 
@@ -1013,6 +1014,7 @@ namespace jtui
     current_state.main_menu_item_width = menu_width(current_state.main_menu);
     current_state.user_data = s.user_data;
     current_state.on_idle = s.idle_action;
+    current_state.sleep_milliseconds = s.sleep_milliseconds;
     current_state.title = title;
     initscr();
     initcolor(s.colors);

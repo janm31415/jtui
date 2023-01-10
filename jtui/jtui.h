@@ -60,6 +60,7 @@ namespace jtui
     action on_idle = nullptr;
     void* user_data = nullptr;
     std::string title;
+    uint32_t sleep_milliseconds = 5;
     };
 
   struct color_scheme
@@ -106,6 +107,7 @@ namespace jtui
     {
     color_scheme colors = get_default_color_scheme();
     action idle_action = &on_idle;
+    uint32_t sleep_milliseconds = 5;
     void* user_data = nullptr;
     };
 
