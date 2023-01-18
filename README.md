@@ -1,7 +1,7 @@
 # jtui
 Jan's textual user interface.
 
-This is a more modern remake of the tui by P.J. Kunst that is delivered with the demo code of PDCurses.
+This is a more modern remake of the [tui](https://github.com/janm31415/PDCurses/blob/master/demos/tui.h) by P.J. Kunst that is delivered with the demo code of PDCurses.
 
 The purpose of this library is not to be a complete user interface, but rather allow fast prototyping of experimental code.
 
