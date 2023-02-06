@@ -22,6 +22,10 @@ to the correct value. There are three choices:
   2. sdl2: Cross platform solution that uses the library `SDL2`.
   3. x11: MacOs and Linux only. Uses X11.
   
+On MacOs, you might need to install X11. This can be done with the command
+
+    brew install --cask xquartz  
+  
 ## Screenshots
 
 Default color scheme
